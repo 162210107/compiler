@@ -9,14 +9,16 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <stdint.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <string>
 #include <tchar.h>
 #include <unordered_map>
 #include <vector>
 #include <windows.h>
+
+#include <ostream>
 
 // #include <wmcommn.h>
 using namespace std;
@@ -91,6 +93,8 @@ public:
     wchar_t getProgmWStr(const size_t nowPtr);
     bool isEmpty();
 };
+
+inline int w_str2int(wstring num_str);
 
 extern ReadUnicode readUnicode;
 

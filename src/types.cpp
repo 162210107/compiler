@@ -2,6 +2,30 @@
 
 using namespace std;
 
+// wstring 转 int
+int w_str2int(wstring num_str)
+{
+    if (num_str.empty()) {
+        wcout << L"Cannot transfer empty string!" << endl;
+        return 0;
+    }
+    int num = 0;
+    // 先遍历一遍字符串，判断合法性
+    size_t size = num_str.size();
+    for (wchar_t w_ch : num_str) {
+        if (!(w_ch <= L'9' && w_ch >= L'0')) {
+            wcout << L"Illegal string to transfer!" << endl;
+            return 0;
+        }
+    }
+    for (size_t i = 0; i < size; i++) {
+        num = (num << 3) + (num << 1); // num*10
+        num += (num_str[i] - L'0');
+    }
+    return num;
+}
+
+
 wchar_t ReadUnicode::getProgmWStr(const size_t nowPtr){
     return progm_w_str[nowPtr];
 }

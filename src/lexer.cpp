@@ -125,7 +125,7 @@ void Lexer::GetWord(){
     strToken.clear();
     GetBC();
     GetChar();
-    
+
     if(ch==L'\0'){
         return;
     }
@@ -228,7 +228,7 @@ void Lexer::GetWord(){
         GetChar();
         if(ch==L'='){
             Concat();
-            preWordCol++;
+            // preWordCol++;
             tokenType=ASSIGN;
         }else{
             //error
@@ -243,11 +243,11 @@ void Lexer::GetWord(){
         if(ch==L'='){
             Concat();
             tokenType=LEQ;
-            preWordCol++;
+            // preWordCol++;
         }else if(ch==L'>'){
             Concat();
             tokenType=NEQ;
-            preWordCol++;
+            // preWordCol++;
         }else{
             tokenType=LSS;
             Retract();
