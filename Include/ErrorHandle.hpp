@@ -1,28 +1,35 @@
-#ifndef _ERROR_HANDLE_H
-#define _ERROR_HANDLE_H
+#ifndef _ERROR_HANDLE_HPP
+#define _ERROR_HANDLE_HPP
+#include <lexer.hpp>
+#include <types.hpp>
 
-// 错误种类宏定义
-#define EXPECT_STH_FIND_ANTH 0
-#define EXPECT 1
-#define EXPECT_NUMEBR_AFTER_BECOMES 2
-#define ILLEGAL_DEFINE 3
-#define ILLEGAL_WORD 4
-#define ILLEGAL_RVALUE_ASSIGN 5
-#define MISSING 6
-#define REDUNDENT 7
-#define UNDECLARED_IDENT 8
-#define UNDECLARED_PROC 9
-#define REDECLEARED_IDENT 10
-#define REDECLEARED_PROC 11
-#define INCOMPATIBLE_VAR_LIST 12
-#define UNDEFINED_PROC 13
+class ErrorHandle
+{
+private:
+    unsigned int err_cnt;     // 出错总次数
+    wstring err_msg[ERR_CNT]; // 错误信息表
 
-extern unsigned int err_cnt; // 出错总次数
+    void printPreWord(const wchar_t msg[],const size_t preWordRow,const size_t preWordCol);
+    void printCurWord(const wchar_t msg[],const size_t rowPos,const size_t colPos);
+    void over();
+    // template <class... T>
+    // void error(unsigned int n, T... extra,const size_t preWordRow,const size_t preWordCol,const size_t rowPos,const size_t colPos)
+    // {
+    //     wchar_t msg[200] = L"";
+    //     wsprintfW(msg, err_msg[n].c_str(), extra...);
+    //     err_cnt++;
+    //     if (n == REDUNDENT || n == MISSING || n == UNDECLARED_PROC)
+    //         printPreWord(msg,preWordRow,preWordCol);
+    //     else
+    //         printCurWord(msg,rowPos,colPos);
+    // }
+public:
+    void error(const unsigned int n,const size_t preWordRow,const size_t preWordCol,const size_t rowPos,const size_t colPos);
+    void error(const unsigned int n, const wchar_t *,const size_t preWordRow,const size_t preWordCol,const size_t rowPos,const size_t colPos);
+    void error(const unsigned int n, const wchar_t *, const wchar_t *,const size_t preWordRow,const size_t preWordCol,const size_t rowPos,const size_t colPos);
+    void InitErrorHandle();
+};
 
-void error(unsigned int n);
-void error(unsigned int n, const wchar_t*);
-void error(unsigned int n, const wchar_t*, const wchar_t*);
-void InitErrorHandle();
-void over();
+extern ErrorHandle errorHandle;
 
 #endif

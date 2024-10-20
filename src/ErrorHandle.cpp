@@ -1,11 +1,6 @@
 #include <ErrorHandle.hpp>
-#include <lexer.hpp>
-#include <types.hpp>
 
-long long err_cnt; // 出错总次数
-wstring err_msg[ERR_CNT]; // 错误信息表
-
-void InitErrorHandler()
+void ErrorHandle::InitErrorHandle()
 {
     err_cnt = 0;
     // 报错信息初始化
@@ -32,72 +27,65 @@ void InitErrorHandler()
 }
 
 // 打印错误信息
-void printPreWord(const wchar_t msg[])
+void ErrorHandle::printPreWord(const wchar_t msg[],const size_t preWordRow,const size_t preWordCol)
 {
-    wcout << L"\e[31m(" << preWordRow << "," << preWordCol << L")"
-          << L" Error: " << msg << L"\e[0m " << endl;
+    wcout << L"(" << preWordRow << "," << preWordCol << L")"
+          << L" Error: " << msg << endl;
 }
 
-void printCurWord(const wchar_t msg[])
+void ErrorHandle::printCurWord(const wchar_t msg[],const size_t rowPos,const size_t colPos)
 {
-    wcout << L"\e[31m(" << rowPos << "," << colPos << L")"
-          << L" Error: " << msg << L"\e[0m " << endl;
+    wcout << L"(" << rowPos << "," << colPos << L")"
+          << L" Error: " << msg << endl;
 }
 
-template <class... T>
-void error(unsigned int n, T... extra)
+void ErrorHandle::error(const unsigned int n,const size_t preWordRow,const size_t preWordCol,const size_t rowPos,const size_t colPos)
 {
     wchar_t msg[200] = L"";
-    wsprintf(msg, err_msg[n].c_str(), extra...);
+    // wsprintfW(msg, err_msg[n].c_str());
+    swprintf_s(msg, sizeof(msg) / sizeof(wchar_t), err_msg[n].c_str());
     err_cnt++;
     if (n == REDUNDENT || n == MISSING || n == UNDECLARED_PROC)
-        printPreWord(msg);
+        printPreWord(msg,preWordRow,preWordCol);
     else
-        printCurWord(msg);
+        printCurWord(msg,rowPos,colPos);
 }
 
-void error(unsigned int n)
+void ErrorHandle::error(const unsigned int n, const wchar_t* extra,const size_t preWordRow,const size_t preWordCol,const size_t rowPos,const size_t colPos)
 {
     wchar_t msg[200] = L"";
-    wsprintfW(msg, err_msg[n].c_str());
+    // wsprintfW(msg, err_msg[n].c_str(), extra);
+    swprintf_s(msg, sizeof(msg) / sizeof(wchar_t), err_msg[n].c_str(), extra);
     err_cnt++;
     if (n == REDUNDENT || n == MISSING || n == UNDECLARED_PROC)
-        printPreWord(msg);
+        printPreWord(msg,preWordRow,preWordCol);
     else
-        printCurWord(msg);
+        printCurWord(msg,rowPos,colPos);
 }
 
-void error(unsigned int n, const wchar_t* extra)
+void ErrorHandle::error(const unsigned int n, const wchar_t* extra1, const wchar_t* extra2,const size_t preWordRow,const size_t preWordCol,const size_t rowPos,const size_t colPos)
 {
     wchar_t msg[200] = L"";
-    wsprintfW(msg, err_msg[n].c_str(), extra);
+    // wsprintfW(msg, err_msg[n].c_str(), extra1, extra2);
+    swprintf_s(msg, sizeof(msg) / sizeof(wchar_t), err_msg[n].c_str(), extra1, extra2);
     err_cnt++;
     if (n == REDUNDENT || n == MISSING || n == UNDECLARED_PROC)
-        printPreWord(msg);
+        printPreWord(msg,preWordRow,preWordCol);
     else
-        printCurWord(msg);
-}
-
-void error(unsigned int n, const wchar_t* extra1, const wchar_t* extra2)
-{
-    wchar_t msg[200] = L"";
-    wsprintfW(msg, err_msg[n].c_str(), extra1, extra2);
-    err_cnt++;
-    if (n == REDUNDENT || n == MISSING || n == UNDECLARED_PROC)
-        printPreWord(msg);
-    else
-        printCurWord(msg);
+        printCurWord(msg,rowPos,colPos);
 }
 // 格式化输出错误分析结果
-void over()
+void ErrorHandle::over()
 {
     if (err_cnt == 0) {
-        wcout << L"\e[32mNo error. Congratulations!\e[0m" << endl;
-        wcout << L"\e[32m______________________________Compile compelete!________________________________\e[0m\n"
+        wcout << L"No error. Congratulations!" << endl;
+        wcout << L"______________________________Compile compelete!________________________________\n"
               << endl;
     } else {
-        wcout << L"\e[31mTotol: " << err_cnt << L" errors\e[0m" << endl;
-        wcout << L"\e[33m_______________________________Compile failed!_________________________________\e[0m\n"
+        wcout << L"Totol: " << err_cnt << L" errors" << endl;
+        wcout << L"_______________________________Compile failed!_________________________________\n"
               << endl;
     }
 }
+
+ErrorHandle errorHandle;

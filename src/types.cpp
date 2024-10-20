@@ -1,28 +1,31 @@
 #include <types.hpp>
-#include <ErrorHandle.hpp>
-using namespace std;
-ifstream file;
 
-void init()
-{
-    // 清空原来的文件字符串
+using namespace std;
+
+wchar_t ReadUnicode::getProgmWStr(const size_t nowPtr){
+    return progm_w_str[nowPtr];
+}
+
+bool ReadUnicode::isEmpty(){
+    return progm_w_str.empty();
+}
+
+void ReadUnicode::InitReadUnicode(){
     progm_w_str.clear();
-    // InitLexer();
-    InitErrorHandle();
-    // 以Unicode方式打开输入输出流
-    _setmode(_fileno(stdout), _O_U16TEXT);
 }
 
 // 读取 UTF8 文件, 返回Unicode（UCS-2）字符串
-void readFile2USC2(string filename)
+void ReadUnicode::readFile2USC2(const string filename)
 {
     // 打开文件
+    wcout<<filename.c_str()<<endl;
+
     file.open(filename);
     if (!file.is_open()) {
         wcout << L"cannot open file!" << endl;
         return;
     }
-    wcout << L"\e[32mCompiling file '" << filename.c_str() << L"'!\e[0m" << endl;
+    wcout << L"[Compiling file '" << filename.c_str() << L"]" << endl;
 
     // 禁止过滤空白符
     file >> noskipws;
@@ -31,7 +34,7 @@ void readFile2USC2(string filename)
         file.seekg(0, ios::beg);
     }
 
-    byte B; // 1字节
+    unsigned char B; // 1字节
     wchar_t wchar; // 2字节存储UCS-2码点
     wstring w_str(L""); // 用于存储转换结果的 Unicode 码点序列
     int len; // 单个 UTF8 字符的编码长度
@@ -89,3 +92,5 @@ void readFile2USC2(string filename)
     // file.seekg(0, file.beg);
     file.close();
 }
+
+ReadUnicode readUnicode;
