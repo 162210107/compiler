@@ -23,6 +23,8 @@
 // #include <wmcommn.h>
 using namespace std;
 
+// wchar_t 双字节字符类型,针对UNICODE编码格式
+// wstring 双字节，针对UNICODE编码格式
 const int RSV_WORD_MAX = 15; // 保留字的数量
 const int OPR_MAX = 11;      // 操作数数量
 const int ERR_CNT = 70;      // 报错种数
@@ -94,7 +96,7 @@ public:
     bool isEmpty();
 };
 
-inline int w_str2int(wstring num_str);
+int w_str2int(wstring num_str);
 
 extern ReadUnicode readUnicode;
 

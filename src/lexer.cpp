@@ -210,7 +210,6 @@ void Lexer::GetWord(){
         }
         if(IsLetter()){
             //error
-            // error(ILLEGAL_WORD, (L"'" + strToken + L"'").c_str());
             errorHandle.error(ILLEGAL_WORD, (L"'" + strToken + L"'").c_str(),preWordRow,preWordCol,rowPos,colPos);
             //到下一个界符
             while(!IsBoundary()){

@@ -6,8 +6,6 @@ using namespace std;
 
 class Lexer
 {
-    // wchar_t 双字节字符类型,针对UNICODE编码格式
-    // wstring 双字节，针对UNICODE编码格式
 private:
     wchar_t ch;                                    // 存放最新读进的字符
     unsigned long tokenType;                       // 最近一次识别出来的 token 的类型
@@ -40,6 +38,10 @@ public:
     void GetWord();
     void InitLexer();
     wchar_t GetCh();
+    size_t GetPreWordCol(){return preWordCol;};
+    size_t GetPreWordRow(){return preWordRow;};
+    size_t GetColPos(){return colPos;};
+    size_t GetRowPos(){return rowPos;};
 };
 
 extern Lexer lexer;

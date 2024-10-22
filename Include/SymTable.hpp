@@ -1,45 +1,29 @@
-#ifndef _SYMBOL_TABLE_H
-#define _SYMBOL_TABLE_H
+#ifndef _SYMBOL_TABLE_HPP
+#define _SYMBOL_TABLE_HPP
 #include <types.hpp>
 #include <ErrorHandle.hpp>
+#include <lexer.hpp>
 using namespace std;
-
-enum Type
-{
-    INTERGER
-};
 
 enum Category
 {
     NIL,   // 空
-    ARR,   // 数组
     VAR,   // 变量
     PROCE, // 过程
     CST,   // 常量
     FORM,  // 形参
 };
 
-// 父类信息类型
+// 父类信息类
 class Information
 {
 public:
-    wstring cat_map[6] = {
-        L"null",
-        L"array",
-        L"var",
-        L"procedure",
-        L"const",
-        L"formal var"};
+    Category cat; // 种属
+    size_t level; // 属于的子程序层数
 
-    enum Category cat; // 种属
-    size_t offset;
-    size_t level;
-
-    Information():offset(0),cat(Category::NIL),level(0){};
-    virtual void setValue(wstring val_str) {}
-    virtual int getValue() { return 0; }
-    virtual void setEntry(size_t entry) {}
-    virtual size_t getEntry() { return -1; }
+    Information():cat(Category::NIL),level(0){};
+    virtual void SetValue(wstring value) {}
+    virtual int GetValue() { return -1; }
     virtual void show();
 };
 
@@ -47,13 +31,13 @@ public:
 class VarInfo : public Information
 {
 private:
-    enum Type type; // 类型
-    int value;      // 值
-
+    int value;      // 变量值
 public:
-    VarInfo() : Information(), type(Type::INTERGER), value(0) {};
-    void setValue(wstring val_str) override;
-    int getValue() override;
+    VarInfo() : Information(),value(0) {};
+    void SetValue(wstring val) override;
+    void SetValue(int nowValue){value=nowValue;};
+    int GetValue() override;
+
     void show() override;
 };
 
@@ -64,6 +48,7 @@ private:
 
 public:
     ProcInfo() : Information(){};
+
     void show() override;
 };
 
@@ -71,8 +56,10 @@ public:
 class SymTableItem
 {
 public:
-    Information *info;  //不同类型对应不同的info
+    Information *info;  // 不同类型对应不同的info
     wstring name;       // 符号名
+    size_t previous;    // 指针域，链接它在同一过程内的前以域名字在表中的下标
+    
     void show();
 };
 
@@ -80,14 +67,21 @@ public:
 class SymTable
 {
 private:
-    size_t sp;                  // 指向当前子过程符号表的首地址
+    size_t sp;                  // 指向当前子过程符号表的首地址,符号表从1开始
     vector<SymTableItem> table; // 一个程序唯一的符号表
+    vector<size_t> display;     // 过程的嵌套层次表，栈结构进入新的一层起始处的符号表（其实是链表末尾下标）
+    size_t level;               // 记录当前程序层级
 
 public:
-    SymTable() : sp(0) {};
-   
-    // 清空符号表
-    void clear();
+    SymTable() : sp(0) ,level(0){display.resize(1, 0);};
+    void SetLevel(size_t nowlevel){level=nowlevel;};
+    size_t GetLevel(){return level;};
+    size_t GetSp(){return sp;};
+
+    int InsertToTable(wstring name, Category cat);  // 插入表格
+    int SearchInfo(wstring name,Category cat);      // 查找过程名在符号表中位置，主过程返回-1
+    void MkTable();                                 // 进入新的过程，获取新的过程起始位置sp
+    void clear();                                   // 清空整个程序的符号表
 };
 
 extern SymTable symTable;

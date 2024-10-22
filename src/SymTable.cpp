@@ -3,37 +3,126 @@ SymTable symTable;
 
 void Information::show()
 {
-    wcout << setw(10) << L"cat: " << setw(13) << cat_map[cat]
-          << setw(10) << L"offset: " << setw(5) << offset
+    wcout << setw(10) << L"cat: " << setw(13) << cat
           << setw(10) << L"level: " << setw(5) << level;
 }
 
-void VarInfo::setValue(wstring val_str) { this->value = w_str2int(val_str); }
+void VarInfo::SetValue(wstring val) { this->value = w_str2int(val); }
 
-int VarInfo::getValue() { return this->value; }
+int VarInfo::GetValue() { return this->value; }
 
 void VarInfo::show()
 {
-    wcout << setw(10) << L"cat:" << setw(15) << cat_map[cat]
-          << setw(10) << L"offset:" << setw(5) << offset
+    wcout << setw(10) << L"cat:" << setw(15) << cat
           << setw(10) << L"level:" << setw(5) << level
           << setw(10) << L"value:" << setw(5) << value;
 }
 
 void ProcInfo::show()
 {
+    
+}
 
+//输入：词法分析器识别到的词法name，cat（类别）
+//功能：找到距离当前层最近出现的相同的词，并返回该词在符号表中的位置
+//输出：-1表示找不到，不是-1表示找得到
+int SymTable::SearchInfo(wstring name, Category cat)
+{
+    unsigned int curAddr = 0;
+    // 若查找主过程名，直接返回-1
+    if (level == 0 && display[0] == 0)//说明第0层啥也没有，肯定没有重复的
+        return -1;
+    for (int i = level; i >= 0; i--)
+    {                         // 遍历所有子过程
+        curAddr = display[i]; // 当前子过程其实符号表项
+        while (1)
+        {
+            if (cat == Category::PROCE)
+            {
+                if (table[curAddr].info->cat == Category::PROCE && table[curAddr].name == name)
+                {
+                    return curAddr;
+                }
+                if (table[curAddr].previous == 0)//previous为0时说明这是本层的第一个，到头了
+                    break;
+                curAddr = table[curAddr].previous;
+            }
+            else
+            {
+                //有可能其他也是这个名字，所以要匹配所有
+                if (table[curAddr].info->cat != Category::PROCE && table[curAddr].name == name)
+                {
+                    return curAddr;
+                }
+                if (table[curAddr].previous == 0)//previous为0时说明这是本层的第一个，到头了
+                    break;
+                curAddr = table[curAddr].previous;
+            }
+        }
+    }
+    return -1;
+}
+
+//功能：每当进入一个新的子程序时（已经确定是，但子程序名还没有写入）
+     //就更新sp到子程序在符号表中的起始位置
+void SymTable::MkTable()
+{
+    sp = table.size();
 }
 
 void SymTableItem::show()
 {
-    wcout << setw(10) << name ;
+    wcout << setw(10) << name << setw(10) << previous;
     info->show();
     wcout << endl;
+}
+
+//输入：词法分析器识别到的词法name，cat（类别）
+//功能：函数归为当前层，遇到”（“才进入下一层，然后level++，继续存消息
+//输出：成功返回插入符号表的位置，失败返回-1
+int SymTable::InsertToTable(wstring name, Category cat)
+{
+    int pos = SearchInfo(name, cat);
+    if (pos != -1 && table[pos].info->level == level)
+    {
+        if (cat == Category::PROCE)
+        {// 找到的相同的词在本层
+            errorHandle.error(REDECLEARED_PROC, name.c_str(), lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        }
+        else
+        {// 如果查找到重复符号，且必须在同一层级，不为形参、过程名，则说明出现变量名重定义
+            errorHandle.error(REDECLEARED_IDENT, name.c_str(), lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        }
+        return -1;
+    }
+
+    size_t curAddr = table.size();
+    SymTableItem item;
+    item.name = name;
+    // 更新本层最新的符号表项
+    item.previous = display[level];
+    display[level] = curAddr;
+
+    if (cat == Category::PROCE){
+        ProcInfo *procInfo = new ProcInfo;
+        procInfo->cat = cat;
+        procInfo->level = level;
+        item.info = procInfo;
+    }else{
+        VarInfo *varInfo = new VarInfo;
+        varInfo->cat = cat;
+        varInfo->level = level;
+        varInfo->SetValue(0);
+        item.info = varInfo;
+    }
+    table.push_back(item);
+    return curAddr;
 }
 
 void SymTable::clear()
 {
     sp = 0;
     table.clear();
+    display.clear();
+    display.resize(1, 0);
 }
