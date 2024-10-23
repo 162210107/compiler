@@ -44,27 +44,40 @@ const int ERR_CNT = 70;      // 报错种数
 #define REDECLEARED_PROC 11
 #define INCOMPATIBLE_VAR_LIST 12
 #define UNDEFINED_PROC 13
+#define UNDEFINED_PROG 14
 
 #define NUL 0x0           /* 空 */
+
+//<lop>
 #define EQL 0x1           /* =  1*/
 #define NEQ 0x2           /* <> 2*/
 #define LSS 0x4           /* < 4*/
 #define LEQ 0x8           /* <= 8*/
 #define GRT 0x10          /* > 16*/
 #define GEQ 0x20          /* >= 32*/
-#define ODD_SYM 0x40      /* 奇数判断 64*/
-#define IDENT 0x80        /* 标识符 */
-#define NUMBER 0x100      /* 数值 */
-#define PLUS 0x200        /* + */
-#define MINUS 0x400       /* - */
-#define MULTI 0x800       /* * */
-#define DIVIS 0x1000      /* / */
-#define LPAREN 0x2000     /* ( */
-#define RPAREN 0x4000     /* ) */
-#define COMMA 0x8000      /* , */
-#define SEMICOLON 0x10000 /* ; */
-#define ASSIGN 0x20000    /*:=*/
 
+//<aop>
+#define PLUS 0x40        /* + */
+#define MINUS 0x80       /* - */
+
+//<mop>
+#define MULTI 0x100       /* * */
+#define DIVIS 0x200      /* / */
+
+//<id>
+#define IDENT 0x400        /* 标识符 */
+
+//<integer>
+#define NUMBER 0x800      /* 数值 */
+
+#define LPAREN 0x1000     /* ( */
+#define RPAREN 0x2000     /* ) */
+#define COMMA 0x4000      /* , */
+#define SEMICOLON 0x8000 /* ; */
+#define ASSIGN 0x10000    /*:=*/
+
+//保留字
+#define ODD_SYM 0x20000      /* 奇数判断 64*/
 #define BEGIN_SYM 0x40000
 #define END_SYM 0x80000
 #define IF_SYM 0x100000

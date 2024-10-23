@@ -12,6 +12,7 @@ enum Category
     PROCE, // 过程
     CST,   // 常量
     FORM,  // 形参
+    PROG,  // 程序刚开始
 };
 
 // 父类信息类
@@ -44,11 +45,12 @@ public:
 // 过程信息，继承信息类型
 class ProcInfo : public Information
 {
-private:
-
 public:
-    ProcInfo() : Information(){};
+    bool isDefined;             // 过程是否定义的标识
+    size_t entry;               // 过程的中间代码入口地址
+    vector<size_t> formVarList; // 过程的形参入口地址列表
 
+    ProcInfo() : Information(){};
     void show() override;
 };
 
@@ -67,7 +69,7 @@ public:
 class SymTable
 {
 private:
-    size_t sp;                  // 指向当前子过程符号表的首地址,符号表从1开始
+    size_t sp;                  // 指向当前子过程名字的地址,符号表从1开始
     vector<SymTableItem> table; // 一个程序唯一的符号表
     vector<size_t> display;     // 过程的嵌套层次表，栈结构进入新的一层起始处的符号表（其实是链表末尾下标）
     size_t level;               // 记录当前程序层级
@@ -77,11 +79,13 @@ public:
     void SetLevel(size_t nowlevel){level=nowlevel;};
     size_t GetLevel(){return level;};
     size_t GetSp(){return sp;};
+    SymTableItem GetTable(int num);
 
+    void showAll();
     int InsertToTable(wstring name, Category cat);  // 插入表格
     int SearchInfo(wstring name,Category cat);      // 查找过程名在符号表中位置，主过程返回-1
     void MkTable();                                 // 进入新的过程，获取新的过程起始位置sp
-    void clear();                                   // 清空整个程序的符号表
+    void InitAndClear();                                   // 清空整个程序的符号表
 };
 
 extern SymTable symTable;

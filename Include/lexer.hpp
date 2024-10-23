@@ -42,6 +42,8 @@ public:
     size_t GetPreWordRow(){return preWordRow;};
     size_t GetColPos(){return colPos;};
     size_t GetRowPos(){return rowPos;};
+    wstring GetStrToken(){return strToken;};
+    unsigned long GetTokenType(){return tokenType;};
 };
 
 extern Lexer lexer;
