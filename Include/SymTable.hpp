@@ -68,7 +68,7 @@ public:
 // 符号表
 class SymTable
 {
-private:
+public:
     size_t sp;                  // 指向当前子过程名字的地址,符号表从1开始
     vector<SymTableItem> table; // 一个程序唯一的符号表
     vector<size_t> display;     // 过程的嵌套层次表，栈结构进入新的一层起始处的符号表（其实是链表末尾下标）
@@ -80,6 +80,7 @@ public:
     size_t GetLevel(){return level;};
     size_t GetSp(){return sp;};
     SymTableItem GetTable(int num);
+    void PopDisplay(){display.pop_back();}
 
     void showAll();
     int InsertToTable(wstring name, Category cat);  // 插入表格

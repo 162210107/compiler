@@ -48,14 +48,14 @@ public:
     void constA();
     void condecl();
     void vardecl();
-    void expression();
     void term();
     void factor();
     void prog();
     void body();
     void lexp();
-    void Parser::judge(const unsigned long s1, const unsigned long s2, const unsigned int n,const wchar_t* extra);
-    void Parser::judge(const unsigned long s1, const unsigned long s2, const unsigned int n,const wchar_t* extra1,const wchar_t* extra2);
+    void exp();
+    int judge(const unsigned long s1, const unsigned long s2, const unsigned int n,const wchar_t* extra);
+    int judge(const unsigned long s1, const unsigned long s2, const unsigned int n,const wchar_t* extra1,const wchar_t* extra2);
 };
 
 extern Parser parser;
