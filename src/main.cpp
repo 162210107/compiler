@@ -2,6 +2,7 @@
 #include <lexer.hpp>
 #include <ErrorHandle.hpp>
 #include <SymTable.hpp>
+#include <parser.hpp>
 using namespace std;
 
 void init()
@@ -40,6 +41,24 @@ void TestLexer()
     }
 }
 
+void TestParser(){
+    string filename = "";
+    while (cin >> filename)
+    {
+        init();
+        //C:\Users\蔡蕾\Desktop\compilation-principle\test\test_error.txt
+        readUnicode.readFile2USC2("D:\\compilation-principle\\test\\" + filename);
+        if (readUnicode.isEmpty())
+        {
+            wcout << L"请输入下一个待编译的文件名称, 或输入'r'重复, 或按Ctrl+C结束" << endl;
+            continue;
+        }
+
+        parser.analyze();
+        return;
+    }
+}
+
 void TestSymTable(){
     string filename = "";
     while (cin >> filename)
@@ -64,4 +83,5 @@ int main()
 {
     // TestLexer();
     // TestSymTable();
+    TestParser();
 }

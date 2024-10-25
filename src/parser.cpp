@@ -14,6 +14,7 @@ int Parser::judge(const unsigned long s1, const unsigned long s2, const unsigned
         {
             if (lexer.GetCh() == L'\0')
                 errorHandle.over();
+            // return 0;
             lexer.GetWord(); // 继续词法分析
         }
         if (lexer.GetTokenType() & s1)
@@ -144,7 +145,6 @@ void Parser::statement()
             else
                 return;
         }
-    
     }
     else if (lexer.GetTokenType() == WHILE_SYM)
     { // <statement> -> while <lexp> do <statement>
@@ -175,7 +175,7 @@ void Parser::statement()
         if (lexer.GetTokenType() == IDENT)
         {
             // 查找过程的符号名
-            int pos = symTable.SearchInfo(lexer.GetStrToken(), Category::VAR);
+            int pos = symTable.SearchInfo(lexer.GetStrToken(), Category::PROCE);
             // 未查找到过程名
             if (pos == -1)
                 errorHandle.error(UNDECLARED_PROC, lexer.GetStrToken().c_str(),
@@ -335,15 +335,12 @@ void Parser::exp()
     { //<exp> → [+|-]<term>
         term();
 
-    Entry5: //<exp> → [+|-]<term>{<aop><term>}
-        if (lexer.GetTokenType() & (PLUS | MINUS))
+        //<exp> → [+|-]<term>{<aop><term>}
+        while (lexer.GetTokenType() & (PLUS | MINUS))
         {
-            int r1 = judge(firstTerm, followExp, MISSING, L"a <aop>");
-            if (r1 == 1)
-            {
+            lexer.GetWord();
+            if (lexer.GetTokenType() & firstTerm)
                 term();
-                goto Entry5;
-            }
         }
     }
     else
@@ -492,67 +489,66 @@ void Parser::lexp()
 //<vardecl> → var <id>{,<id>};
 void Parser::vardecl()
 {
-    int r = judge(firstVardecl, IDENT | followVardecl, EXPECT_STH_FIND_ANTH, L"var", lexer.GetStrToken().c_str());
-
-    if (r == 1)
-    { //<vardecl> → var
+    if (lexer.GetTokenType() == VAR_SYM)
+    {
         lexer.GetWord();
-    Entry4:
-        int r1 = judge(IDENT, SEMICOLON | COMMA | followVardecl, MISSING, L"<id>");
-        if (r1 == 1)
-        { //<vardecl> → var <id>
+        // var <id>
+        if (lexer.GetTokenType() == IDENT)
+        {
+            // 将标识符登入到符号表
             symTable.InsertToTable(lexer.GetStrToken(), Category::VAR);
             lexer.GetWord();
-            goto Entry3;
-        }
-        else if (lexer.GetTokenType() == SEMICOLON)
-        { //<vardecl> → var ;
-            lexer.GetWord();
-            return;
-        }
-        else if (lexer.GetTokenType() == COMMA)
-        { //<vardecl> → var ,
-            lexer.GetWord();
-            goto Entry4;
         }
         else
-            return;
-    }
-    else if (lexer.GetTokenType() == IDENT)
-    { //<vardecl> → <id>
-        int curAddr = symTable.InsertToTable(lexer.GetStrToken(), Category::VAR);
-        lexer.GetWord();
-        goto Entry3;
+        {
+            int r = judge(0, COMMA, MISSING, L"identifier");
+            if (r == 1)
+                lexer.GetWord();
+        }
+        // var <id>{,<id>}
+        while (lexer.GetTokenType() == COMMA)
+        {
+            lexer.GetWord();
+            if (lexer.GetTokenType() == IDENT)
+            {
+                // 将标识符登入到符号表
+                symTable.InsertToTable(lexer.GetStrToken(), Category::VAR);
+                lexer.GetWord();
+            }
+            else if (lexer.GetTokenType() == COMMA)
+            {
+                errorHandle.error(MISSING, L"a <id>",
+                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            }
+            else if (lexer.GetTokenType() == SEMICOLON)
+            {
+                errorHandle.error(MISSING, L"a <id>",
+                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                break;
+            }
+        }
+        // var <id>{,<id>};
+        if (lexer.GetTokenType() == SEMICOLON)
+        {
+            lexer.GetWord();
+        }
+        else
+        {
+            int r = judge(0, followVardecl, MISSING, L"';'");
+            if (r == 1)
+                lexer.GetWord();
+        }
     }
     else
-        return;
-
-Entry3:
-    //<vardecl> → var <id>
-    int r2 = judge(SEMICOLON | COMMA, IDENT | followVardecl, MISSING, L",");
-    if (lexer.GetTokenType() == SEMICOLON)
-    { //<vardecl> → var <id> ;
-        lexer.GetWord();
-        return;
-    }
-    else if (lexer.GetTokenType() == COMMA)
     {
-        lexer.GetWord();
-        goto Entry4;
+        int r = judge(0, followVardecl, ILLEGAL_DEFINE, L"vardecl");
+        if (r == 1)
+            lexer.GetWord();
     }
-    else if (lexer.GetTokenType() == IDENT)
-    {
-        symTable.InsertToTable(lexer.GetStrToken(), Category::VAR);
-        lexer.GetWord();
-        goto Entry3;
-    }
-    else
-        return;
 }
 
 //<const> → <id>:=<integer>
 // const一定从condecl那边通过判断后过来
-// 我只负责多往后看一个！以及整体观念
 void Parser::constA()
 {
     // 插入符号表。此时value为0
@@ -600,55 +596,36 @@ void Parser::constA()
 }
 
 //<condecl> → const <const>{,<const>};
-// 只有从block过来，并且block那边过来时已经有验证
-// 匹配到；后多读一个，供后续用
-// 本身过来就有一个token
 void Parser::condecl()
 {
-    //<condecl> → const
-    lexer.GetWord();
-
-Entry1:
-    int r = judge(firstConst, followConst | followCondecl, MISSING, L"<const>");
-    if (lexer.GetTokenType() == SEMICOLON)
-    { //<condecl> → const {,} ;
-        lexer.GetWord();
-        return;
-    }
-    if (r == 1)
-    { //<condecl> → const <const>
-        constA();
-        goto Entry2;
-    }
-    else if (lexer.GetTokenType() == COMMA)
-    { //<condecl> → const {,}
-        lexer.GetWord();
-        goto Entry1;
-    }
-    else
+    if (lexer.GetTokenType() == CONST_SYM)
     {
-        return;
-    }
+        //<condecl> → const
+        lexer.GetWord();
 
-Entry2:
-    int r1 = judge(followConst, firstConst | followCondecl, MISSING, L",/;");
-    if (lexer.GetTokenType() == COMMA)
-    { //<condecl> → const <const> ,
-        lexer.GetWord();
-        goto Entry1;
+        if (lexer.GetTokenType() == firstConst) //<condecl> → const <const>
+            constA();
+
+        while (lexer.GetTokenType() == COMMA)
+        { 
+            lexer.GetWord();
+            if (lexer.GetTokenType() == firstConst)
+                constA();
+            else if(lexer.GetTokenType()==COMMA)
+                errorHandle.error(REDUNDENT,L",",
+                    lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        }
+
+        if(lexer.GetTokenType()==SEMICOLON)
+            lexer.GetWord();
+        else{
+            int r=judge(SEMICOLON,followCondecl,EXPECT_STH_FIND_ANTH,L";",lexer.GetStrToken().c_str());
+            if(r==1) lexer.GetWord();
+        }
+    }else{
+        int r=judge(0,followCondecl,ILLEGAL_DEFINE, L"condecl");
+        if(r==1) lexer.GetWord();
     }
-    else if (lexer.GetTokenType() == SEMICOLON)
-    { //<condecl> → const <const>;
-        lexer.GetWord();
-        return;
-    }
-    else if (lexer.GetTokenType() == IDENT)
-    { //<condecl> → const <const> <const>
-        constA();
-        goto Entry2;
-    }
-    else
-        return;
 }
 
 //<proc> → procedure <id>（[<id>{,<id>}]）;<block>{;<proc>}
@@ -658,120 +635,121 @@ void Parser::proc()
     {
         lexer.GetWord();
         ProcInfo *cur_info = nullptr;
-        // <proc> -> procedure id
+        // <proc> -> procedure <id>
         if (lexer.GetTokenType() == IDENT)
         {
             // 将过程名登入符号表
             symTable.MkTable();
             int cur_proc = symTable.InsertToTable(lexer.GetStrToken(), Category::PROCE);
             if (cur_proc != -1)
-            {
                 cur_info = (ProcInfo *)symTable.table[cur_proc].info;
+            lexer.GetWord();
+        }
+        else
+        {
+            int r = judge(0, LPAREN, EXPECT_STH_FIND_ANTH, L"identifier", (L"'" + lexer.GetStrToken() + L"'").c_str());
+            if (r == 1)
                 lexer.GetWord();
-            }
-            else
-            {
-                int r = judge(0, LPAREN, EXPECT_STH_FIND_ANTH, L"identifier", (L"'" + lexer.GetStrToken() + L"'").c_str());
-                if (r == 1)
-                    lexer.GetWord();
-            }
-            // <proc> -> procedure id (
-            if (lexer.GetTokenType() == LPAREN)
-            {
-                // 层级增加，display表扩张
-                symTable.display.push_back(0);
-                symTable.level++;
+        }
+        // <proc> -> procedure id (
+        if (lexer.GetTokenType() == LPAREN)
+        {
+            // 层级增加，display表扩张
+            symTable.display.push_back(0);
+            symTable.level++;
+            lexer.GetWord();
+        }
+        else
+        {
+            int r = judge(0, IDENT | RPAREN, MISSING, L"'('");
+            if (r == 1)
                 lexer.GetWord();
-            }
-            else
+        }
+        // <proc> -> procedure id ([id {,id}]
+        // 分析至形参列表
+        if (lexer.GetTokenType() == IDENT)
+        {
+            // 将过程的形参登入符号表，并与相应的过程绑定
+            int form_var = symTable.InsertToTable(lexer.GetStrToken(), Category::FORM);
+            if (cur_info)
+                cur_info->formVarList.push_back(form_var);
+            lexer.GetWord();
+            while (lexer.GetTokenType() == COMMA)
             {
-                int r = judge(0, IDENT | RPAREN, MISSING, L"'('");
-                if (r == 1)
-                    lexer.GetWord();
-            }
-            // <proc> -> procedure id ([id {,id}]
-            // 分析至形参列表
-            if (lexer.GetTokenType() == IDENT)
-            {
-                // 将过程的形参登入符号表，并与相应的过程绑定
-                int form_var = symTable.InsertToTable(lexer.GetStrToken(), Category::FORM);
-                if (cur_info)
-                    cur_info->formVarList.push_back(form_var);
                 lexer.GetWord();
-                while (lexer.GetTokenType() == COMMA)
+                if (lexer.GetTokenType() == IDENT)
                 {
+                    // 将过程的形参登入符号表，并与相应的过程绑定
+                    int form_var = symTable.InsertToTable(lexer.GetStrToken(), Category::FORM);
+                    if (cur_info)
+                        cur_info->formVarList.push_back(form_var);
                     lexer.GetWord();
-                    if (lexer.GetTokenType() == IDENT)
-                    {
-                        // 将过程的形参登入符号表，并与相应的过程绑定
-                        int form_var = symTable.InsertToTable(lexer.GetStrToken(), Category::FORM);
-                        if (cur_info)
-                            cur_info->formVarList.push_back(form_var);
-                        lexer.GetWord();
-                    }
-                    else
-                    {
-                        errorHandle.error(REDUNDENT, L"','",
-                                          lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-                    }
+                }
+                else
+                {
+                    errorHandle.error(REDUNDENT, L"','",
+                                      lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                 }
             }
-            // <proc> -> procedure id ([id {,id}])
-            if (lexer.GetTokenType() == RPAREN)
+        }
+        // <proc> -> procedure id ([id {,id}])
+        if (lexer.GetTokenType() == RPAREN)
+        {
+            lexer.GetWord();
+        }
+        else
+        {
+            int r = judge(0, SEMICOLON, MISSING, L"')'");
+            if (r == 1)
+                lexer.GetWord();
+        }
+        // <proc> -> procedure id ([id {,id}]);
+        if (lexer.GetTokenType() == SEMICOLON)
+        {
+            lexer.GetWord();
+        }
+        else
+        {
+            int r = judge(0, firstBlock, MISSING, L"';'");
+            if (r == 1)
+                lexer.GetWord();
+        }
+        // <proc> -> procedure id ([id {,id}]);<block> {;<proc>}
+
+        if (lexer.GetTokenType() & firstBlock)
+        {
+            block();
+            // 层级减少，display表弹出
+            symTable.display.pop_back();
+            symTable.level--;
+            // 当前过程结束，开始分析下面的过程
+            while (lexer.GetTokenType() == SEMICOLON)
             {
                 lexer.GetWord();
-            }
-            else
-            {
-                int r = judge(0, SEMICOLON, MISSING, L"')'");
-                if (r == 1)
-                    lexer.GetWord();
-            }
-            // <proc> -> procedure id ([id {,id}]);
-            if (lexer.GetTokenType() == SEMICOLON)
-            {
-                lexer.GetWord();
-            }
-            else
-            {
-                int r = judge(0, firstBlock, MISSING, L"';'");
-                if (r == 1)
-                    lexer.GetWord();
-            }
-            // <proc> -> procedure id ([id {,id}]);<block> {;<proc>}
-            if (lexer.GetTokenType() & firstBlock)
-            {
-                block();
-                // 层级减少，display表弹出
-                symTable.display.pop_back();
-                symTable.level--;
-                // 当前过程结束，开始分析下面的过程
-                while (lexer.GetTokenType() == SEMICOLON)
+                // FIRST(proc)
+                if (lexer.GetTokenType() == PROC_SYM)
                 {
-                    lexer.GetWord();
-                    // FIRST(proc)
-                    if (lexer.GetTokenType() == PROC_SYM)
-                    {
-                        proc();
-                    }
-                    else
-                        errorHandle.error(REDUNDENT, L"';'",
-                                          lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    proc();
                 }
-            }
-            else
-            {
-                int r = judge(0, followBlock, ILLEGAL_DEFINE, L"block");
-                if (r == 1)
-                    lexer.GetWord();
+                else
+                {
+                    errorHandle.error(REDUNDENT, L"';'",
+                                      lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                }
             }
         }
         else
         {
-            int r = judge(0, followProc, ILLEGAL_DEFINE, L"procedure");
+            int r = judge(0, followBlock, ILLEGAL_DEFINE, L"<block>");
             if (r == 1)
                 lexer.GetWord();
         }
+    }
+    else
+    {
+        int r = judge(0, followProc, ILLEGAL_DEFINE, L"procedure");
+        if (r == 1)
+            lexer.GetWord();
     }
 }
 
@@ -790,6 +768,7 @@ void Parser::block()
     if (lexer.GetTokenType() & firstProc)
         proc();
 
+    // wcout << lexer.GetStrToken() << endl;
     //<block> → [<condecl>][<vardecl>][<proc>]<body>
     int r = judge(firstBody, followBlock, EXPECT_STH_FIND_ANTH, L"begin", lexer.GetStrToken().c_str());
     if (r == 1)
@@ -817,7 +796,6 @@ void Parser::prog()
                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
 
         // TODO
-
         lexer.GetWord();
         block(); // 进入<block>
         return;
@@ -832,10 +810,17 @@ void Parser::prog()
 
     lexer.GetWord();
     //<prog> → program <id> ; <block>
-    int r = judge(SEMICOLON, firstBlock, MISSING, L";");
+    int r = judge(SEMICOLON, firstBlock | followProg, EXPECT_STH_FIND_ANTH, L";", lexer.GetStrToken().c_str());
     if (r == 1)
         lexer.GetWord();
     // TODO
 
     block();
+}
+
+void Parser::analyze()
+{
+    lexer.GetWord();
+    prog();
+    errorHandle.over();
 }
