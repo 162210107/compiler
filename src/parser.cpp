@@ -325,51 +325,57 @@ void Parser::statement()
 //<exp> → [+|-]<term>{<aop><term>}
 void Parser::exp()
 {
-    if (lexer.GetTokenType() & (PLUS | MINUS))
+    if (lexer.GetTokenType() & firstExp)
     {
-        lexer.GetWord();
-    }
-
-    int r = judge(firstTerm, followExp, MISSING, L"term");
-    if (r == 1)
-    { //<exp> → [+|-]<term>
-        term();
-
-        //<exp> → [+|-]<term>{<aop><term>}
-        while (lexer.GetTokenType() & (PLUS | MINUS))
-        {
+        if (lexer.GetTokenType() & (PLUS | MINUS))
             lexer.GetWord();
-            if (lexer.GetTokenType() & firstTerm)
-                term();
+
+        int r = judge(firstTerm, followExp, MISSING, L"term");
+        if (r == 1)
+        { //<exp> → [+|-]<term>
+            term();
+
+            //<exp> → [+|-]<term>{<aop><term>}
+            while (lexer.GetTokenType() & (PLUS | MINUS))
+            {
+                lexer.GetWord();
+                if (lexer.GetTokenType() & firstTerm)
+                    term();
+                else if(lexer.GetTokenType() & (PLUS | MINUS))
+                    errorHandle.error(EXPECT, L"<term>",
+                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            }
         }
     }
-    else
-        return;
+    else{
+        int r=judge(0,followExp,ILLEGAL_DEFINE, L"exp");
+        if (r == 1)
+            lexer.GetWord();
+    }
 }
 
 //<term> → <factor>{<mop><factor>}
 void Parser::term()
 {
-    int r = judge(firstFactor, followTerm, MISSING, L"a <factor>");
-    if (r == 1)
+    if (lexer.GetTokenType() & firstTerm)
     { //<term> → <factor>
         factor();
-    Entry6:
-        if (lexer.GetTokenType() & (MULTI | DIVIS))
+        while (lexer.GetTokenType() & (MULTI | DIVIS))
         { //<term> → <factor><mop>
             lexer.GetWord();
-            if (lexer.GetTokenType() & firstFactor)
-            { //<term> → <factor>{<mop><factor>}
+            if (lexer.GetTokenType() & firstFactor) //<term> → <factor>{<mop><factor>}
                 factor();
-                goto Entry6;
-            }
             else
                 errorHandle.error(EXPECT, L"<factor>",
                                   lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
         }
     }
     else
-        return;
+    {
+        int r = judge(0, followTerm, ILLEGAL_DEFINE, L"term");
+        if (r == 1)
+            lexer.GetWord();
+    }
 }
 
 //<factor>→<id>|<integer>|(<exp>)
@@ -389,9 +395,7 @@ void Parser::factor()
         lexer.GetWord();
     }
     else if (lexer.GetTokenType() == NUMBER)
-    {
         lexer.GetWord();
-    }
     else if (lexer.GetTokenType() == LPAREN)
     {
         lexer.GetWord();
@@ -469,9 +473,7 @@ void Parser::lexp()
             exp();
         }
         else if (lexer.GetTokenType() & firstExp)
-        {
             exp();
-        }
         else
             return;
     }
@@ -516,22 +518,15 @@ void Parser::vardecl()
                 lexer.GetWord();
             }
             else if (lexer.GetTokenType() == COMMA)
-            {
                 errorHandle.error(MISSING, L"a <id>",
                                   lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-            }
             else if (lexer.GetTokenType() == SEMICOLON)
-            {
                 errorHandle.error(MISSING, L"a <id>",
                                   lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-                break;
-            }
         }
         // var <id>{,<id>};
         if (lexer.GetTokenType() == SEMICOLON)
-        {
             lexer.GetWord();
-        }
         else
         {
             int r = judge(0, followVardecl, MISSING, L"';'");
@@ -571,14 +566,8 @@ void Parser::constA()
             SymTableItem item = symTable.GetTable(curAddr);
             item.info->SetValue(lexer.GetStrToken());
             lexer.GetWord();
-        }
-        else if (r == -1)
-        { //<const> → <id>:=  读到follow
-        }
-        else if (r == 1 && curAddr == -1)
-        { //<const> → <id>:=<integer>,但是重复存在
+        }else if (r == 1 && curAddr == -1) //<const> → <id>:=<integer>,但是重复存在
             lexer.GetWord();
-        }
     }
     else if (lexer.GetTokenType() == NUMBER)
     { //<const> → <id> <integer>
@@ -588,10 +577,8 @@ void Parser::constA()
             item.info->SetValue(lexer.GetStrToken());
             lexer.GetWord();
         }
-        else
-        { // 已经重复的元素
+        else // 已经重复的元素
             lexer.GetWord();
-        }
     } // 到const的follow集合
 }
 
@@ -607,24 +594,29 @@ void Parser::condecl()
             constA();
 
         while (lexer.GetTokenType() == COMMA)
-        { 
+        {
             lexer.GetWord();
             if (lexer.GetTokenType() == firstConst)
                 constA();
-            else if(lexer.GetTokenType()==COMMA)
-                errorHandle.error(REDUNDENT,L",",
-                    lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            else if (lexer.GetTokenType() == COMMA)
+                errorHandle.error(REDUNDENT, L",",
+                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
         }
 
-        if(lexer.GetTokenType()==SEMICOLON)
+        if (lexer.GetTokenType() == SEMICOLON)
             lexer.GetWord();
-        else{
-            int r=judge(SEMICOLON,followCondecl,EXPECT_STH_FIND_ANTH,L";",lexer.GetStrToken().c_str());
-            if(r==1) lexer.GetWord();
+        else
+        {
+            int r = judge(SEMICOLON, followCondecl, EXPECT_STH_FIND_ANTH, L";", lexer.GetStrToken().c_str());
+            if (r == 1)
+                lexer.GetWord();
         }
-    }else{
-        int r=judge(0,followCondecl,ILLEGAL_DEFINE, L"condecl");
-        if(r==1) lexer.GetWord();
+    }
+    else
+    {
+        int r = judge(0, followCondecl, ILLEGAL_DEFINE, L"condecl");
+        if (r == 1)
+            lexer.GetWord();
     }
 }
 
