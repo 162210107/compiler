@@ -255,6 +255,7 @@ void Parser::statement()
                                   lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             lexer.GetWord();
         }
+        
         else
         {
             int r = judge(0, COMMA | RPAREN, EXPECT_STH_FIND_ANTH, L"identifier", (L"'" + lexer.GetStrToken() + L"'").c_str());
