@@ -45,6 +45,10 @@ const int ERR_CNT = 70;      // 报错种数
 #define INCOMPATIBLE_VAR_LIST 12
 #define UNDEFINED_PROC 13
 #define UNDEFINED_PROG 14
+#define SYNTAX_ERROR 15
+#define MISSING_DETAILED 16
+#define INVALID_SYNTAX 17
+#define UNEXPECTED_TOKEN 18
 
 #define NUL 0x0           /* 空 */
 

@@ -56,6 +56,7 @@ public:
     void lexp();
     void exp();
     void analyze();
+    void reportError(unsigned int errorType, const wchar_t* expected, const wchar_t* context);
     int judge(const unsigned long s1, const unsigned long s2, const unsigned int n,const wchar_t* extra);
     int judge(const unsigned long s1, const unsigned long s2, const unsigned int n,const wchar_t* extra1,const wchar_t* extra2);
 };

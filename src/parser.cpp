@@ -1,6 +1,12 @@
 #include <parser.hpp>
 Parser parser;
 
+void Parser::reportError(unsigned int errorType, const wchar_t* expected, const wchar_t* context) {
+    errorHandle.error(errorType, expected, context,
+                      lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+}
+
+
 // 用于错误恢复的函数，若当前符号在s1中，则读取下一符号；若当前符号不在s1中，则报错，接着循环查找下一个在中s1 ∪ s2的符号
 int Parser::judge(const unsigned long s1, const unsigned long s2, const unsigned int n, const wchar_t *extra)
 {
@@ -21,11 +27,12 @@ int Parser::judge(const unsigned long s1, const unsigned long s2, const unsigned
         {
             return 1;
         }
-        else
+        else if (lexer.GetTokenType() & s2)
         {
             // 已经获取了下一个匹配的first，所以无需再读
             return -1;
-        }
+        }else
+            return 0;
     }
     else
     {
@@ -51,9 +58,12 @@ int Parser::judge(const unsigned long s1, const unsigned long s2, const unsigned
 
         if (lexer.GetTokenType() & s1)
             return 1;
-        else
+        else if (lexer.GetTokenType() & s2)
+        {
             // 已经获取了下一个匹配的first，所以无需再读
             return -1;
+        }else
+            return 0;
     }
     else
         return 1;
@@ -330,7 +340,7 @@ void Parser::exp()
         if (lexer.GetTokenType() & (PLUS | MINUS))
             lexer.GetWord();
 
-        int r = judge(firstTerm, followExp, MISSING, L"term");
+        int r = judge(firstTerm, followExp, MISSING, L"term (valid term expected in expression)");
         if (r == 1)
         { //<exp> → [+|-]<term>
             term();
@@ -342,13 +352,15 @@ void Parser::exp()
                 if (lexer.GetTokenType() & firstTerm)
                     term();
                 else if(lexer.GetTokenType() & (PLUS | MINUS))
-                    errorHandle.error(EXPECT, L"<term>",
-                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    // 在发现 '+' 或 '-' 之后未找到有效的 <term>
+                    errorHandle.error(EXPECT, L"a valid term after '+' or '-' in expression.",
+                                      lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             }
         }
     }
     else{
-        int r=judge(0,followExp,ILLEGAL_DEFINE, L"exp");
+       // 非法的表达式开头
+        int r = judge(0, followExp, ILLEGAL_DEFINE, L"expression (invalid expression start)");
         if (r == 1)
             lexer.GetWord();
     }
@@ -359,20 +371,27 @@ void Parser::term()
 {
     if (lexer.GetTokenType() & firstTerm)
     { //<term> → <factor>
-        factor();
+        factor();// 处理第一个 factor
         while (lexer.GetTokenType() & (MULTI | DIVIS))
         { //<term> → <factor><mop>
             lexer.GetWord();
             if (lexer.GetTokenType() & firstFactor) //<term> → <factor>{<mop><factor>}
                 factor();
+           else if (lexer.GetTokenType() & (MULTI | DIVIS))
+                // 连续操作符的错误情况
+                errorHandle.error(SYNTAX_ERROR, L"<factor>",
+                                  L"Two consecutive operators found. Expected a <factor> after '*' or '/'.",
+                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             else
-                errorHandle.error(EXPECT, L"<factor>",
+                // 缺少有效的 factor
+                errorHandle.error(EXPECT, L"a valid <factor> after '*' or '/'.",
                                   lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
         }
     }
     else
     {
-        int r = judge(0, followTerm, ILLEGAL_DEFINE, L"term");
+        // 非法的 term 开头
+        int r = judge(0, followTerm, ILLEGAL_DEFINE, L"term (invalid term start)");
         if (r == 1)
             lexer.GetWord();
     }
@@ -381,7 +400,6 @@ void Parser::term()
 //<factor>→<id>|<integer>|(<exp>)
 void Parser::factor()
 {
-    int r = judge(IDENT | NUMBER | LPAREN, followFactor, EXPECT_STH_FIND_ANTH, L"'<id>,<integer>,('", lexer.GetStrToken().c_str());
     if (lexer.GetTokenType() == IDENT)
     {
         // 查找变量符号
@@ -406,76 +424,80 @@ void Parser::factor()
             if (lexer.GetTokenType() == RPAREN)
                 lexer.GetWord();
             else
-                errorHandle.error(MISSING, L")",
+                errorHandle.error(MISSING_DETAILED, L"')'", 
+                                  L"Expected closing parenthesis ')'.",
                                   lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
         }
     }
-    else
-        return;
+    else{
+        // 其他情况处理非法的 factor
+        int r = judge(0, followFactor, ILLEGAL_DEFINE, L"factor");
+        if (r == 1)
+            lexer.GetWord(); // 尝试恢复
+        else
+            errorHandle.error(SYNTAX_ERROR, L"<id>, <integer>, '('",
+                              L"Expected a valid factor, such as an identifier, a number, or an expression in parentheses.",
+                              lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+    }
 }
 
-//<body> → begin <statement>{;<statement>}end
-void Parser::body()
-{
-    // 判断是否存在begin,是否仅缺少begin
-    int r = judge(BEGIN_SYM, firstStatement | followBody, MISSING, L"begin");
-
-    if (r == 1)
-    {
+void Parser::body() {
+    if (lexer.GetTokenType() == BEGIN_SYM) {
         lexer.GetWord();
-    Entry7:
-        int r1 = judge(firstStatement, END_SYM | followBody, MISSING, L"statement");
-        if (r1 == 1)
-        {
-            statement();
-            int r2 = judge(SEMICOLON | END_SYM, followBody, MISSING, L"end");
-            if (lexer.GetTokenType() == SEMICOLON)
-            {
-                lexer.GetWord();
-                goto Entry7;
-            }
-            else if (lexer.GetTokenType() == END_SYM)
-            {
-                lexer.GetWord();
-                return;
-            }
-            else
-                return;
-        }
-        else if (lexer.GetTokenType() == END_SYM)
-        {
+    }else {
+        // 缺少 'begin' 的情况
+        int r = judge(BEGIN_SYM|firstStatement ,followBody, MISSING, L"'begin'");
+        if (r == 1) lexer.GetWord(); // 尝试恢复
+        else return;
+    }
+
+    while (lexer.GetTokenType() & firstStatement) {
+        statement();
+
+        if (lexer.GetTokenType() == SEMICOLON) {
+            lexer.GetWord();
+        } else if (lexer.GetTokenType() == END_SYM) {
             lexer.GetWord();
             return;
+        } else {
+            errorHandle.error(MISSING, L"';' or 'end'", lexer.GetStrToken().c_str(),
+                                      lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            // 尝试恢复到下一个语句或块结束
+            int r = judge(SEMICOLON, END_SYM | followBody, MISSING, L"';' or 'end'");
+            if (r == 1) lexer.GetWord();
         }
-        else
-            return;
     }
-    else if (lexer.GetTokenType() & firstStatement)
-    {
-        goto Entry7;
+
+    // 缺少 'end' 的处理
+    if (lexer.GetTokenType() != END_SYM) {
+        errorHandle.error(MISSING, L"'end' to close the body block.",
+                          lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        int r = judge(END_SYM, followBody, MISSING, L"'end'");
+        if (r == 1) lexer.GetWord(); // 尝试恢复
+    } else {
+        lexer.GetWord(); // 消耗合法的 'end'
     }
-    else
-        return;
 }
 
 //<lexp> → <exp> <lop> <exp>|odd <exp>
 void Parser::lexp()
 {
-    int r = judge(firstExp | ODD_SYM, followLexp, MISSING, L"a <exp> or odd");
-
     if (lexer.GetTokenType() & firstExp)
     {
         exp();
-        int r1 = judge(EQL | NEQ | LSS | LEQ | GRT | GEQ, firstExp | followLexp, MISSING, L"a <lop>");
-        if (r1 == 1)
+        // 检查逻辑操作符
+        if (lexer.GetTokenType() & (EQL | NEQ | LSS | LEQ | GRT | GEQ))
         {
-            lexer.GetWord();
-            exp();
+            lexer.GetWord(); // 消耗逻辑操作符
+            int r = judge(firstExp, followLexp, MISSING, L"a <exp>");
+            if (r == 1)
+                exp(); // 解析右侧表达式
         }
-        else if (lexer.GetTokenType() & firstExp)
-            exp();
         else
-            return;
+            // 缺少逻辑操作符的情况
+            errorHandle.error(MISSING, L"<lop>", 
+                              L"Expected a logical operator (e.g., '=', '<>', '<') after the expression.",
+                              lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
     }
     else if (lexer.GetTokenType() & ODD_SYM)
     {
@@ -485,7 +507,14 @@ void Parser::lexp()
             exp();
     }
     else
-        return;
+    {
+        // 非法的 lexp 开头
+        int r = judge(0, followLexp, ILLEGAL_DEFINE, L"lexp (invalid logical expression start)");
+        if (r == 1)
+        {
+            lexer.GetWord(); // 尝试恢复
+        }
+    }
 }
 
 //<vardecl> → var <id>{,<id>};
@@ -517,12 +546,9 @@ void Parser::vardecl()
                 symTable.InsertToTable(lexer.GetStrToken(), Category::VAR);
                 lexer.GetWord();
             }
-            else if (lexer.GetTokenType() == COMMA)
-                errorHandle.error(MISSING, L"a <id>",
-                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-            else if (lexer.GetTokenType() == SEMICOLON)
-                errorHandle.error(MISSING, L"a <id>",
-                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            else {
+                reportError(MISSING, L"identifier", L"Expected a variable identifier after ','.");
+            }
         }
         // var <id>{,<id>};
         if (lexer.GetTokenType() == SEMICOLON)
@@ -536,7 +562,7 @@ void Parser::vardecl()
     }
     else
     {
-        int r = judge(0, followVardecl, ILLEGAL_DEFINE, L"vardecl");
+        int r = judge(0, followVardecl, ILLEGAL_DEFINE, L"<vardecl>");
         if (r == 1)
             lexer.GetWord();
     }
@@ -592,6 +618,8 @@ void Parser::condecl()
 
         if (lexer.GetTokenType() == firstConst) //<condecl> → const <const>
             constA();
+        else
+            reportError(MISSING, L"constant declaration", L"Expected a constant after 'const'.");
 
         while (lexer.GetTokenType() == COMMA)
         {
@@ -599,8 +627,7 @@ void Parser::condecl()
             if (lexer.GetTokenType() == firstConst)
                 constA();
             else if (lexer.GetTokenType() == COMMA)
-                errorHandle.error(REDUNDENT, L",",
-                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                reportError(REDUNDENT, L"','", L"Unexpected ',' without a following constant.");
         }
 
         if (lexer.GetTokenType() == SEMICOLON)
@@ -762,11 +789,9 @@ void Parser::block()
 
     // wcout << lexer.GetStrToken() << endl;
     //<block> → [<condecl>][<vardecl>][<proc>]<body>
-    int r = judge(firstBody, followBlock, EXPECT_STH_FIND_ANTH, L"begin", lexer.GetStrToken().c_str());
+    int r = judge(firstBody, followBlock, MISSING, L"'begin' (start of a block body)");
     if (r == 1)
         body();
-    else
-        return;
 }
 
 //<prog> → program <id>；<block>

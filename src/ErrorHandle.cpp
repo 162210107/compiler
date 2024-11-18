@@ -6,6 +6,7 @@ void ErrorHandle::InitErrorHandle()
     // 报错信息初始化
     // missing错误
     errMsg[MISSING] = L"Missing %s";
+    errMsg[MISSING_DETAILED] = L"Missing %s. Details: %s"; // 新增详细的 MISSING 错误
     // undeclare错误
     errMsg[UNDECLARED_IDENT] = L"Undeclared identifier '%s'";
     errMsg[UNDECLARED_PROC] = L"Undeclared procedure name '%s'";
@@ -24,7 +25,13 @@ void ErrorHandle::InitErrorHandle()
     // 其他错误
     errMsg[INCOMPATIBLE_VAR_LIST] = L"The real variable list is incompatible with formal variable list";
     errMsg[UNDEFINED_PROC] = L"Calling undefined procedure '%s'";
+
+    // 新增语法错误类型
+    errMsg[SYNTAX_ERROR] = L"Syntax Error: %s. Expected: %s.";
+    errMsg[INVALID_SYNTAX] = L"Invalid syntax near '%s'. Details: %s"; // 具体语法无效错误
+    errMsg[UNEXPECTED_TOKEN] = L"Unexpected token '%s'. Expected: %s"; // 意外的符号错误
 }
+
 
 // 打印错误信息
 void ErrorHandle::printPreWord(const wchar_t msg[],const size_t preWordRow,const size_t preWordCol)
