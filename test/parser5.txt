@@ -1,0 +1,7 @@
+program test6;
+var x;
+begin
+    if x = 10  
+        writeln('x is 10')
+    else;       
+end

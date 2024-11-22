@@ -1,0 +1,12 @@
+lexer1.txt    标识符以数字开头。
+lexer2.txt    使用了 PL/0 中未定义的符号 # 和 $。
+lexer3.txt    数字中包含非法字符或格式错误。
+
+parser1.txt   程序开头缺少 program 关键字。
+parser2.txt   分号缺失。
+parser3.txt   嵌套的 begin-end 块未正确闭合。
+parser4.txt   过程定义缺少 begin-end 块。
+parser5.txt   then 或 else 部分缺失。
+parser6.txt   缺少 do 或循环体。
+parser7.txt   不必要的逗号或分号导致语法错误。
+parser8.txt   read 和 write 使用不符合 PL/0 的语法规则。
