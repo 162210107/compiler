@@ -55,8 +55,9 @@ void TestParser(){
         }
 
         parser.analyze();
-        return;
+        break;
     }
+    return;
 }
 
 void TestSymTable(){

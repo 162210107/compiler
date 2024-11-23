@@ -1,0 +1,12 @@
+program 123test;
+var x, y, z;
+begin
+    x := 10;
+    y := 20;
+    z := x + y;
+    a := 10 / 2; 
+    b := $a + 10;
+    x := 1e2;
+    y := 0x1A;
+    常 := 10;
+end

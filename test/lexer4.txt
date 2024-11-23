@@ -1,0 +1,7 @@
+program test;
+var x, y， z;
+begin
+    常 := 10;
+    y := 20;
+    z := x + y;
+end

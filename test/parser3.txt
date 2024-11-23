@@ -1,6 +1,5 @@
 program test4;
 begin
     begin
-        writeln('Hello, world!');
-   
-end
+        write(1)
+    

@@ -1,6 +1,8 @@
 lexer1.txt    标识符以数字开头。
-lexer2.txt    使用了 PL/0 中未定义的符号 # 和 $。
+lexer2.txt    使用了 PL/0 中未定义的符号$。
 lexer3.txt    数字中包含非法字符或格式错误。
+lexer4.txt    中文字符
+lexer5.txt    综合测试
 
 parser1.txt   程序开头缺少 program 关键字。
 parser2.txt   分号缺失。

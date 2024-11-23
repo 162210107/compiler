@@ -1,6 +1,6 @@
 program test2;
 var a, b;
 begin
-    a := 10 # 2; 
+    a := 10 / 2; 
     b := $a + 10;
 end

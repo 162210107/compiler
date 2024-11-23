@@ -13,7 +13,6 @@ class Parser
 private:
     // first集
     unsigned long firstProg = PROGM_SYM;
-    
     unsigned long firstCondecl = CONST_SYM;
     unsigned long firstConst = IDENT;
     unsigned long firstVardecl = VAR_SYM;
@@ -35,7 +34,7 @@ private:
     unsigned long followVardecl = firstProc | firstBody;
     unsigned long followProc = firstBody | SEMICOLON; 
     unsigned long followStatement = SEMICOLON | END_SYM | ELSE_SYM;
-     unsigned long followBody = SEMICOLON | followStatement;
+    unsigned long followBody = SEMICOLON | followStatement;
     unsigned long followLexp = THEN_SYM | DO_SYM;
     unsigned long followExp = firstLop | COMMA | RPAREN | followStatement | followLexp; 
     unsigned long followTerm = followExp | PLUS | MINUS;
