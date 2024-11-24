@@ -1,7 +1,7 @@
 program test6;
 var x;
 begin
-    if x = 10  
-        writeln('x is 10')
-    else;       
+    if x >= 10  
+        write(1)
+    else
 end

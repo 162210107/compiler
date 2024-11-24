@@ -92,7 +92,7 @@ const int ERR_CNT = 70;      // 报错种数
 #define CONST_SYM 0x2000000
 #define VAR_SYM 0x4000000
 #define PROC_SYM 0x8000000
-#define WRITE_SYM 010000000
+#define WRITE_SYM 0x10000000
 #define READ_SYM 0x20000000
 #define PROGM_SYM 0x40000000
 #define ELSE_SYM 0x80000000

@@ -2,5 +2,5 @@ program test5;
 procedure MyProcedure(a, b);
 begin
     a := a + b;
-    call MyProcedure(1, 2);
+    call MyProcedure(1, 2)
 end
