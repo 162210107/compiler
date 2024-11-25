@@ -12,3 +12,5 @@ parser5.txt   then 或 else 部分缺失。
 parser6.txt   缺少 do 或循环体。
 parser7.txt   不必要的逗号或分号导致语法错误。
 parser8.txt   read 和 write 使用不符合 PL/0 的语法规则。
+parser9.txt   综合测试。
+parser10.txt  procedure声明有误。

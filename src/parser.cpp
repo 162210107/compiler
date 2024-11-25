@@ -155,23 +155,22 @@ void Parser::statement()
     else if (lexer.GetTokenType() == WHILE_SYM)
     { // <statement> -> while <lexp> do <statement>
         lexer.GetWord();
-        int r = judge(firstLexp, DO_SYM | followStatement, MISSING, L"<lexp>");
-        if (r == 1)
+        lexp();
+        
+        if (lexer.GetTokenType() == DO_SYM)
         {
-            lexp();
-            judge(DO_SYM, firstStatement | followStatement, MISSING, L"do");
-            if (lexer.GetTokenType() == DO_SYM)
-            {
-                lexer.GetWord();
-                judge(firstStatement, followStatement, MISSING, L"statement");
-                if (lexer.GetTokenType() & firstStatement)
-                    statement();
-            }
-            else if (lexer.GetTokenType() & firstStatement)
-                statement();
-            else
-                return;
+            lexer.GetWord();
+            statement();
         }
+        else if (lexer.GetTokenType() & firstStatement){
+            errorHandle.error(MISSING, L"do", lexer.GetPreWordRow(),
+                        lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            statement();
+        }else{
+            errorHandle.error(MISSING, L"do", lexer.GetPreWordRow(),
+                        lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        }
+        
     }
     else if (lexer.GetTokenType() == CALL_SYM)
     { // <statement> -> call id ([{<exp>{,<exp>}])
@@ -240,7 +239,6 @@ void Parser::statement()
         {
             lexer.GetWord();
         }
-
         else
         {
             int r = judge(0, COMMA | RPAREN, EXPECT_STH_FIND_ANTH, L"identifier", (L"'" + lexer.GetStrToken() + L"'").c_str());
@@ -289,8 +287,8 @@ void Parser::statement()
         while (lexer.GetTokenType() == COMMA)
         {
             lexer.GetWord();
-            if (lexer.GetTokenType() == RPAREN)
-                errorHandle.error(REDUNDENT, L"','",
+            if (lexer.GetTokenType() == RPAREN||lexer.GetTokenType()==COMMA)
+                errorHandle.error(MISSING, L"<exp>",
                                   lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             else
                 exp();

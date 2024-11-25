@@ -2,5 +2,5 @@ program test11;
 var x;
 begin
     read x;  
-    write(x, );
+    write(x, )
 end
