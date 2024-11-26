@@ -218,6 +218,27 @@ void Parser::statement()
                     errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
                                       lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             }
+            else if (lexer.GetTokenType() & firstExp)
+            {
+                errorHandle.error(MISSING, L"(", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+
+                exp();
+                while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
+                {
+                    if (lexer.GetTokenType() & COMMA)
+                        lexer.GetWord();
+                    else
+                        errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    exp();
+                }
+                if (lexer.GetTokenType() & RPAREN)
+                    lexer.GetWord();
+                else
+                    errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            }
         }
         else if (lexer.GetTokenType() & LPAREN)
         {

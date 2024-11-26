@@ -25,7 +25,6 @@ parser18.txt  <procedure>： procedure id后括号内，多余。
 parser19.txt  <procedure>： procedure id后括号内，缺少。
 parser20.txt  <procedure>： procedure声明后缺少;。
 parser21.txt  <call>：      call使用不符合 PL/0 的语法规则。
-parser22.txt  <factor>：    括号缺失。  
-parser23.txt  <const>：     :=缺少错误。
-parser24.txt  <,>：         const和var时,多余。 
-parser25.txt  综合测试。
+parser22.txt  <const>：     :=缺少错误。
+parser23.txt  <,>：         const和var时,多余。 
+parser24.txt  综合测试。

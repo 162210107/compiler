@@ -12,5 +12,6 @@ begin
     write(,1);
     write(,1;
     write(x,;
+    write(x,x x);
     write(x, )
 end
