@@ -567,49 +567,32 @@ void Parser::term()
         }
     }
     else
-    {
         // 非法的 term 开头
-        int r = judge(0, followTerm, ILLEGAL_DEFINE, L"term (invalid term start)");
-        if (r == 1)
-            lexer.GetWord();
-    }
+        judge(0, followTerm, ILLEGAL_DEFINE, L"term (invalid term start)");
 }
 
 //<factor>→<id>|<integer>|(<exp>)
 void Parser::factor()
 {
     if (lexer.GetTokenType() == IDENT)
-    {
         lexer.GetWord();
-    }
     else if (lexer.GetTokenType() == NUMBER)
         lexer.GetWord();
     else if (lexer.GetTokenType() == LPAREN)
     {
         lexer.GetWord();
-        int r1 = judge(firstExp, RPAREN | followFactor, MISSING, L"<exp>");
-        if (r1 == 1)
-        {
-            exp();
-            if (lexer.GetTokenType() == RPAREN)
-                lexer.GetWord();
-            else
-                errorHandle.error(MISSING_DETAILED, L"')'",
-                                  L"Expected closing parenthesis ')'.",
-                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-        }
-    }
-    else
-    {
-        // 其他情况处理非法的 factor
-        int r = judge(0, followFactor, ILLEGAL_DEFINE, L"factor");
-        if (r == 1)
-            lexer.GetWord(); // 尝试恢复
+
+        exp();
+        if (lexer.GetTokenType() == RPAREN)
+            lexer.GetWord();
         else
-            errorHandle.error(SYNTAX_ERROR, L"<id>, <integer>, '('",
-                              L"Expected a valid factor, such as an identifier, a number, or an expression in parentheses.",
+            errorHandle.error(MISSING_DETAILED, L"')'",
+                              L"Expected closing parenthesis ')'.",
                               lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
     }
+    else
+        // 其他情况处理非法的 factor
+        judge(0, followFactor, ILLEGAL_DEFINE, L"factor");
 }
 
 // <body> → begin <statement>{;<statement>}end
@@ -670,34 +653,23 @@ void Parser::lexp()
         exp();
         // 检查逻辑操作符
         if (lexer.GetTokenType() & (EQL | NEQ | LSS | LEQ | GRT | GEQ))
-        {
-            lexer.GetWord(); // 消耗逻辑操作符
-            int r = judge(firstExp, followLexp, MISSING, L"a <exp>");
-            if (r == 1)
                 exp(); // 解析右侧表达式
-        }
-        else
+        else{
             // 缺少逻辑操作符的情况
             errorHandle.error(MISSING,
                               L"Expected a logical operator (e.g., '=', '<>', '<') after the expression.",
                               lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            exp();
+        }
     }
     else if (lexer.GetTokenType() & ODD_SYM)
     {
         lexer.GetWord();
-        int r1 = judge(firstExp, followLexp, MISSING, L"a <exp>");
-        if (r1 == 1)
-            exp();
+        exp();
     }
     else
-    {
         // 非法的 lexp 开头
-        int r = judge(0, followLexp, ILLEGAL_DEFINE, L"lexp (invalid logical expression start)");
-        if (r == 1)
-        {
-            lexer.GetWord(); // 尝试恢复
-        }
-    }
+        judge(0, followLexp, ILLEGAL_DEFINE, L"lexp (invalid logical expression start)");
 }
 
 //<vardecl> → var <id>{,<id>};
@@ -1035,7 +1007,6 @@ void Parser::block()
         //<block> → [<condecl>][<vardecl>]<proc>
         if (lexer.GetTokenType() & firstProc)
             proc();
-
         // wcout << lexer.GetStrToken() << endl;
         //<block> → [<condecl>][<vardecl>][<proc>]<body>
         body();
