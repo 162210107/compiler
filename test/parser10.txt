@@ -1,8 +1,8 @@
-program a;
-procedure write(x,y,z)
-    begin
-        a:=x; b:=y; z:=0
-    end
+program test6;
+var x;
 begin
-    a:=b
+    if x >= 10  
+    then
+       write(1)
+    else
 end

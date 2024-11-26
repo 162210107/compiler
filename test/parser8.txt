@@ -1,6 +1,6 @@
-program test11;
+program test6;
 var x;
 begin
-    read x;  
-    write(x, )
+    if x >= 10  
+        write(1)
 end

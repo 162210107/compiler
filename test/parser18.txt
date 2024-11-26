@@ -1,0 +1,8 @@
+program a;
+procedure w (x,,z);
+    begin
+        a:=x; b:=y; z:=0
+    end
+begin
+    a:=b
+end

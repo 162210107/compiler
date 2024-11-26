@@ -1,0 +1,7 @@
+program test9;
+const x:=1,,y:=1;
+var x, y,, z; 
+begin
+    x := 10;
+    y := 20
+end

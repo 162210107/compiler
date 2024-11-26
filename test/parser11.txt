@@ -1,0 +1,6 @@
+program test8;
+var i;
+begin
+    while i <= 10
+        write (1)
+end

@@ -1,5 +1,7 @@
-program test4;
+program test2
+const max := 100, min := 1;
+var x, y;
 begin
-    begin
-        write(1)
-    
+    x := 10;
+    y := 20
+end

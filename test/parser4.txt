@@ -1,6 +1,5 @@
-program test5;
-procedure MyProcedure(a, b);
+program test4;
 begin
-    a := a + b;
-    call MyProcedure(1, 2)
-end
+    begin
+        write(1)
+    

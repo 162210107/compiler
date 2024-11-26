@@ -1,0 +1,7 @@
+program test8;
+var i;
+begin
+    while 
+    do
+         write(1)
+end

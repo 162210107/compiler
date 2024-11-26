@@ -1,14 +1,7 @@
-program a；
-const n:=85，常:=7;
-var x,y,z,q,r;
-procedure write(x,y,z)
-    var a,b;
-    begin
-        a=x; b:=y; z:=0;
-        while b>0 
-            a:=b;
-        begin
-            if odd then z:=z+a;
-            a:=2*a; b:=b/2
-        end
-    end;
+program test6;
+var x;
+begin
+    if x >= 10  
+    then
+    
+end

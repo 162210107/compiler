@@ -1,6 +1,7 @@
-program test9;
-var x, y,, z; 
+program test6;
+var x;
 begin
-    x := 10;;
-    y := 20
+    if  
+    then
+        write(1)
 end

@@ -1,7 +1,6 @@
-program test6;
-var x;
+program test5;
+procedure MyProcedure(a, b);
 begin
-    if x >= 10  
-        write(1)
-    else
+    a := a + b;
+    call MyProcedure(1, 2)
 end

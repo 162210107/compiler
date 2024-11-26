@@ -4,13 +4,28 @@ lexer3.txt    数字中包含非法字符或格式错误。
 lexer4.txt    中文字符
 lexer5.txt    综合测试
 
-parser1.txt   程序开头缺少 program 关键字。
-parser2.txt   分号缺失。
-parser3.txt   嵌套的 begin-end 块未正确闭合。
-parser4.txt   过程定义缺少 begin-end 块。
-parser5.txt   then 或 else 部分缺失。
-parser6.txt   缺少 do 或循环体。
-parser7.txt   不必要的逗号或分号导致语法错误。
-parser8.txt   read 和 write 使用不符合 PL/0 的语法规则。
-parser9.txt   综合测试。
-parser10.txt  procedure声明有误。
+parser1.txt   <program>：   程序开头缺少 program 关键字。
+parser2.txt   <program>：   程序开头缺少 id。
+parser3.txt   <program>：   程序开头分号缺失。
+parser4.txt   <body>：      嵌套的 begin-end 块未正确闭合。
+parser5.txt   <body>：      过程定义缺少 begin-end 块。
+parser6.txt   <body>：      多个statement缺少分号。
+parser7.txt   <if>：        if后lexp缺失。
+parser8.txt   <if>：        then缺失。
+parser9.txt   <if>：        then后面statement缺失。
+parser10.txt  <if>：        else后面statement缺失。
+parser11.txt  <while>：     缺少 do。
+parser12.txt  <while>：     do后缺少 statement。
+parser13.txt  <while>：     while后缺少lexp。
+parser14.txt  <read>：      read使用不符合 PL/0 的语法规则。
+parser15.txt  <write>：     write使用不符合 PL/0 的语法规则。
+parser16.txt  <procedure>： procedure后id缺失或不符合规范。
+parser17.txt  <procedure>： procedure id后括号不符合规范。
+parser18.txt  <procedure>： procedure id后括号内，多余。
+parser19.txt  <procedure>： procedure id后括号内，缺少。
+parser20.txt  <procedure>： procedure声明后缺少;。
+parser21.txt  <call>：      call使用不符合 PL/0 的语法规则。
+parser22.txt  <factor>：    括号缺失。  
+parser23.txt  <const>：     :=缺少错误。
+parser24.txt  <,>：         const和var时,多余。 
+parser25.txt  综合测试。

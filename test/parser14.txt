@@ -1,0 +1,16 @@
+program test11;
+var x;
+begin
+    read x);
+    read x;
+    read x,);
+    read ,x);
+    read ,);
+    read ,x;
+    read ;
+    read();
+    read(,x);
+    read(,x;
+    read(x,;
+    read(x, )
+end

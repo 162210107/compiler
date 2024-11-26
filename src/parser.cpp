@@ -96,21 +96,28 @@ void Parser::statement()
     if (lexer.GetTokenType() == IDENT)
     {
         lexer.GetWord();
-        judge(ASSIGN, firstExp | followStatement, MISSING, L":=");
         if (lexer.GetTokenType() == ASSIGN)
         {
             lexer.GetWord();
-            int r = judge(firstExp, followStatement, MISSING, L"<exp>");
-            if (r == 1)
-            {
-                exp();
-                return;
-            }
+            exp();
         }
         else if (lexer.GetTokenType() & firstExp)
         {
+            errorHandle.error(MISSING, L":=", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             exp();
-            return;
+        }
+        else if (lexer.GetTokenType() & EQL)
+        {
+            errorHandle.error(EXPECT_STH_FIND_ANTH, L":=", L"=", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            lexer.GetWord();
+            exp();
+        }
+        else
+        {
+            errorHandle.error(ILLEGAL_DEFINE, L"<ident>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
         }
     }
     else if (lexer.GetTokenType() & IF_SYM)
@@ -122,7 +129,7 @@ void Parser::statement()
         if (lexer.GetTokenType() & THEN_SYM)
         {
             // system("pause");
-        // wcout << (lexer.GetTokenType()&THEN_SYM)<<L"now" << endl;
+            // wcout << (lexer.GetTokenType()&THEN_SYM)<<L"now" << endl;
             lexer.GetWord();
             statement();
             if (lexer.GetTokenType() & ELSE_SYM)
@@ -146,171 +153,350 @@ void Parser::statement()
         else if (lexer.GetTokenType() & ELSE_SYM)
         {
             // system("pause");
-        // wcout << lexer.GetTokenType() << endl;
+            // wcout << lexer.GetTokenType() << endl;
             lexer.GetWord();
             statement();
         }
-        return;
+        else
+        {
+            errorHandle.error(ILLEGAL_DEFINE, L"<if>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        }
     }
     else if (lexer.GetTokenType() == WHILE_SYM)
     { // <statement> -> while <lexp> do <statement>
         lexer.GetWord();
         lexp();
-        
         if (lexer.GetTokenType() == DO_SYM)
         {
             lexer.GetWord();
             statement();
         }
-        else if (lexer.GetTokenType() & firstStatement){
+        else if (lexer.GetTokenType() & firstStatement)
+        {
             errorHandle.error(MISSING, L"do", lexer.GetPreWordRow(),
-                        lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             statement();
-        }else{
-            errorHandle.error(MISSING, L"do", lexer.GetPreWordRow(),
-                        lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
         }
-        
+        else
+        {
+            errorHandle.error(MISSING, L"do", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        }
     }
     else if (lexer.GetTokenType() == CALL_SYM)
     { // <statement> -> call id ([{<exp>{,<exp>}])
         lexer.GetWord();
-        judge(IDENT, LPAREN | followStatement, MISSING, L"<id>");
         // <statement> -> call id
-        if (lexer.GetTokenType() == IDENT)
+        if (lexer.GetTokenType() & IDENT)
         {
             lexer.GetWord();
-        }
-        else if (lexer.GetTokenType() & followStatement)
-            return;
-
-        // <statement> -> call id (
-        if (lexer.GetTokenType() == LPAREN)
-            lexer.GetWord();
-        else
-        {
-            int r2 = judge(0, firstExp | RPAREN, MISSING, L"'('");
-            if (r2 == 1)
-                lexer.GetWord();
-        }
-        // <statement> -> call id ([{<exp>
-        if (lexer.GetTokenType() & firstExp)
-        {
-            exp();
-            size_t i = 1;
-            // <statement> -> call id ([{<exp>{,<exp>}]
-            while (lexer.GetTokenType() == COMMA)
+            if (lexer.GetTokenType() & LPAREN)
             {
                 lexer.GetWord();
                 if (lexer.GetTokenType() & firstExp)
-                    exp();
-                else
                 {
-                    int r3 = judge(0, firstExp, REDUNDENT, L"','");
-                    if (r3 == 1)
-                        lexer.GetWord();
                     exp();
+                    while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
+                    {
+                        if (lexer.GetTokenType() & COMMA)
+                            lexer.GetWord();
+                        else
+                            errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
+                                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                        exp();
+                    }
+                    if (lexer.GetTokenType() & RPAREN)
+                        lexer.GetWord();
+                    else
+                        errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                 }
+                else if (lexer.GetTokenType() & RPAREN)
+                    lexer.GetWord();
+                else if (lexer.GetTokenType() & followStatement)
+                    errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             }
         }
-        // <statement> -> call id ([{<exp>{,<exp>}])
-        if (lexer.GetTokenType() == RPAREN)
+        else if (lexer.GetTokenType() & LPAREN)
+        {
+            errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             lexer.GetWord();
+            if (lexer.GetTokenType() & firstExp)
+            {
+                exp();
+                while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
+                {
+                    if (lexer.GetTokenType() & COMMA)
+                        lexer.GetWord();
+                    else
+                        errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    exp();
+                }
+
+                if (lexer.GetTokenType() & RPAREN)
+                    lexer.GetWord();
+                else
+                    errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            }
+            else if (lexer.GetTokenType() & RPAREN)
+                lexer.GetWord();
+            else if (lexer.GetTokenType() & followStatement)
+                errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        }
+        else if (lexer.GetTokenType() & RPAREN)
+        {
+            errorHandle.error(ILLEGAL_DEFINE, L"<call>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            lexer.GetWord();
+        }
+        else
+            errorHandle.error(ILLEGAL_DEFINE, L"<call>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
     }
-    else if (lexer.GetTokenType() == BEGIN_SYM)
-    { // <statement> -> <body>
-        int r = judge(firstBody, followStatement, MISSING, L"<body>");
-        if (r == 1)
-            body();
-    }
+    else if (lexer.GetTokenType() == BEGIN_SYM) // <statement> -> <body>
+        body();
     else if (lexer.GetTokenType() == READ_SYM)
     { // <statement> -> read (id{,id})
         lexer.GetWord();
         if (lexer.GetTokenType() == LPAREN)
-            lexer.GetWord();
-        else
-        {
-            int r = judge(0, IDENT, MISSING, L"'('");
-            if (r == 1)
-                lexer.GetWord();
-        }
-        // <statement> -> read (id
-        if (lexer.GetTokenType() == IDENT)
         {
             lexer.GetWord();
-        }
-        else
-        {
-            int r = judge(0, COMMA | RPAREN, EXPECT_STH_FIND_ANTH, L"identifier", (L"'" + lexer.GetStrToken() + L"'").c_str());
-            if (r == 1)
-                lexer.GetWord();
-        }
-        // <statement> -> read (id{,
-        while (lexer.GetTokenType() == COMMA)
-        {
-            lexer.GetWord();
-            if (lexer.GetTokenType() == IDENT)
+            if (lexer.GetTokenType() & IDENT)
             {
                 lexer.GetWord();
-            }
-            else
-            {
-                int r = judge(0, IDENT, REDUNDENT, lexer.GetStrToken().c_str());
-                if (r == 1)
+                while (lexer.GetTokenType() & COMMA)
+                {
                     lexer.GetWord();
+                    if (lexer.GetTokenType() & IDENT)
+                        lexer.GetWord();
+                    else if (lexer.GetTokenType() & COMMA)
+                        errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    else
+                    {
+                        errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                        break;
+                    }
+                }
+                if (lexer.GetTokenType() & RPAREN)
+                    lexer.GetWord();
+                else if (lexer.GetTokenType() & followStatement)
+                    errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            }
+            else if (lexer.GetTokenType() & RPAREN)
+            {
+                errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                lexer.GetWord();
+            }
+            else if (lexer.GetTokenType() & COMMA)
+            {
+                errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                while (lexer.GetTokenType() & COMMA)
+                {
+                    lexer.GetWord();
+                    if (lexer.GetTokenType() & IDENT)
+                        lexer.GetWord();
+                    else if (lexer.GetTokenType() & COMMA)
+                        errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+
+                    else
+                    {
+                        errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                        break;
+                    }
+                }
+                if (lexer.GetTokenType() & RPAREN)
+                    lexer.GetWord();
+                else if (lexer.GetTokenType() & followStatement)
+                    errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            }
+            else if (lexer.GetTokenType() & followStatement)
+            {
+                errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             }
         }
-        if (lexer.GetTokenType() == RPAREN)
-            lexer.GetWord();
-        else
+        else if (lexer.GetTokenType() & IDENT)
         {
-            int r = judge(0, followStatement, MISSING, L"')'");
-            if (r == 1)
+            errorHandle.error(MISSING, L"(", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            lexer.GetWord();
+            while (lexer.GetTokenType() & COMMA)
+            {
                 lexer.GetWord();
+                if (lexer.GetTokenType() & IDENT)
+                    lexer.GetWord();
+                else if (lexer.GetTokenType() & COMMA)
+                    errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+
+                else
+                {
+                    errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    break;
+                }
+            }
+            if (lexer.GetTokenType() & RPAREN)
+                lexer.GetWord();
+            else if (lexer.GetTokenType() & followStatement)
+                errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
         }
+        else if (lexer.GetTokenType() & RPAREN)
+        {
+            errorHandle.error(ILLEGAL_DEFINE, L"<read>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            lexer.GetWord();
+        }
+        else if (lexer.GetTokenType() & COMMA)
+        {
+            errorHandle.error(MISSING, L"(<id>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            while (lexer.GetTokenType() & COMMA)
+            {
+                lexer.GetWord();
+                if (lexer.GetTokenType() & IDENT)
+                    lexer.GetWord();
+                else if (lexer.GetTokenType() & COMMA)
+                    errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                else
+                {
+                    errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    break;
+                }
+            }
+            if (lexer.GetTokenType() & RPAREN)
+                lexer.GetWord();
+            else if (lexer.GetTokenType() & followStatement)
+                errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        }
+        else
+            judge(0, followStatement, ILLEGAL_DEFINE, L"<read>");
     }
     else if (lexer.GetTokenType() == WRITE_SYM)
     { // <statement> -> write(<exp> {,<exp>})
         lexer.GetWord();
-        // <statement> -> write(
-        if (lexer.GetTokenType() == LPAREN)
-            lexer.GetWord();
-        else
-        {
-            int r = judge(0, firstExp, MISSING, L"'('");
-            if (r == 1)
-                lexer.GetWord();
-        }
-        // <statement> -> write(<exp>
-        exp();
-        // <statement> -> write(<exp> {,<exp>}
-        while (lexer.GetTokenType() == COMMA)
+        if (lexer.GetTokenType() & LPAREN)
         {
             lexer.GetWord();
-            if (lexer.GetTokenType() == RPAREN||lexer.GetTokenType()==COMMA)
-                errorHandle.error(MISSING, L"<exp>",
-                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-            else
+            if (lexer.GetTokenType() & firstExp)
+            {
                 exp();
-        }
-        // <statement> -> write(<exp> {,<exp>})
-        if (lexer.GetTokenType() == RPAREN)
-            lexer.GetWord();
-        else
-        {
-            int r = judge(0, followStatement, MISSING, L"')'");
-            if (r == 1)
+                while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
+                {
+                    if (lexer.GetTokenType() & COMMA)
+                        lexer.GetWord();
+                    else
+                        errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    exp();
+                }
+                if (lexer.GetTokenType() & RPAREN)
+                    lexer.GetWord();
+                else if (lexer.GetTokenType() & followStatement)
+                    errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            }
+            else if (lexer.GetTokenType() & RPAREN)
+            {
+                errorHandle.error(MISSING, L"<exp>", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                 lexer.GetWord();
+            }
+            else if (lexer.GetTokenType() & COMMA)
+            {
+                errorHandle.error(MISSING, L"<exp>", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
+                {
+                    if (lexer.GetTokenType() & COMMA)
+                        lexer.GetWord();
+                    else
+                        errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    exp();
+                }
+                if (lexer.GetTokenType() & RPAREN)
+                    lexer.GetWord();
+                else if (lexer.GetTokenType() & followStatement)
+                    errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            }
+            else if (lexer.GetTokenType() & followStatement)
+            {
+                errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            }
         }
+        else if (lexer.GetTokenType() & firstExp)
+        {
+            errorHandle.error(MISSING, L"(", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            exp();
+            while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
+            {
+                if (lexer.GetTokenType() & COMMA)
+                    lexer.GetWord();
+                else
+                    errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                exp();
+            }
+            if (lexer.GetTokenType() & RPAREN)
+                lexer.GetWord();
+            else if (lexer.GetTokenType() & followStatement)
+                errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        }
+        else if (lexer.GetTokenType() & RPAREN)
+        {
+            errorHandle.error(ILLEGAL_DEFINE, L"<write>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            lexer.GetWord();
+        }
+        else if (lexer.GetTokenType() & COMMA)
+        {
+            errorHandle.error(MISSING, L"(<exp>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
+            {
+                if (lexer.GetTokenType() & COMMA)
+                    lexer.GetWord();
+                else
+                    errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                exp();
+            }
+            if (lexer.GetTokenType() & RPAREN)
+                lexer.GetWord();
+            else if (lexer.GetTokenType() & followStatement)
+                errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        }
+        else
+            judge(0, followStatement, ILLEGAL_DEFINE, L"<write>");
     }
     else
-    {
         // system("pause");
         //  wcout << lexer.GetTokenType() << endl;
-        int r = judge(0, followStatement, ILLEGAL_DEFINE, L"statement");
-        if (r == 1)
-            lexer.GetWord();
-    }
+        judge(0, followStatement, ILLEGAL_DEFINE, L"statement");
 }
 
 //<exp> → [+|-]<term>{<aop><term>}
@@ -321,31 +507,20 @@ void Parser::exp()
         if (lexer.GetTokenType() & (PLUS | MINUS))
             lexer.GetWord();
 
-        int r = judge(firstTerm, followExp, MISSING, L"term (valid term expected in expression)");
-        if (r == 1)
+        if (lexer.GetTokenType() & firstTerm)
         { //<exp> → [+|-]<term>
             term();
-
             //<exp> → [+|-]<term>{<aop><term>}
             while (lexer.GetTokenType() & (PLUS | MINUS))
             {
                 lexer.GetWord();
-                if (lexer.GetTokenType() & firstTerm)
-                    term();
-                else if (lexer.GetTokenType() & (PLUS | MINUS))
-                    // 在发现 '+' 或 '-' 之后未找到有效的 <term>
-                    errorHandle.error(EXPECT, L"a valid term after '+' or '-' in expression.",
-                                      lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                term();
             }
         }
     }
     else
-    {
         // 非法的表达式开头
-        int r = judge(0, followExp, ILLEGAL_DEFINE, L"expression (invalid expression start)");
-        if (r == 1)
-            lexer.GetWord();
-    }
+        judge(0, followExp, ILLEGAL_DEFINE, L"expression (invalid expression start)");
 }
 
 //<term> → <factor>{<mop><factor>}
@@ -419,27 +594,51 @@ void Parser::factor()
 // <body> → begin <statement>{;<statement>}end
 void Parser::body()
 {
-    int r = judge(BEGIN_SYM | firstStatement, followBody, MISSING, L"'begin'");
     if (lexer.GetTokenType() == BEGIN_SYM)
-        lexer.GetWord();
-    else if (r == -1 || r == 2)
-        return;
-
-    statement();
-
-    while (lexer.GetTokenType() & SEMICOLON)
     {
         lexer.GetWord();
         statement();
-        if (lexer.GetTokenType() == END_SYM)
+        while ((lexer.GetTokenType() & SEMICOLON) || (lexer.GetTokenType() & firstStatement))
         {
-            break;
+            if (lexer.GetTokenType() & SEMICOLON)
+                lexer.GetWord();
+            else
+                errorHandle.error(MISSING, L";", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            statement();
         }
+        if (lexer.GetTokenType() & END_SYM)
+            lexer.GetWord();
+        else
+            judge(0, followBody, MISSING, L"end");
     }
+    else if (lexer.GetTokenType() & firstStatement)
+    {
+        errorHandle.error(MISSING, L"begin", lexer.GetPreWordRow(),
+                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
 
-    int r1 = judge(END_SYM, followBody, MISSING, L"'end'");
-    if (r1 == 1)
+        while ((lexer.GetTokenType() & SEMICOLON) || (lexer.GetTokenType() & firstStatement))
+        {
+            if (lexer.GetTokenType() & SEMICOLON)
+                lexer.GetWord();
+            else
+                errorHandle.error(MISSING, L";", lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            statement();
+        }
+        if (lexer.GetTokenType() & END_SYM)
+            lexer.GetWord();
+        else
+            judge(0, followBody, MISSING, L"end");
+    }
+    else if (lexer.GetTokenType() & END_SYM)
+    {
+        errorHandle.error(ILLEGAL_DEFINE, L"<body>", lexer.GetPreWordRow(),
+                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
         lexer.GetWord();
+    }
+    else
+        judge(0, followBody, ILLEGAL_DEFINE, L"'<body>'");
 }
 
 //<lexp> → <exp> <lop> <exp>|odd <exp>
@@ -487,71 +686,88 @@ void Parser::vardecl()
     {
         lexer.GetWord();
         // var <id>
-        if (lexer.GetTokenType() == IDENT)
+        if (lexer.GetTokenType() & IDENT)
         {
             lexer.GetWord();
-        }
-        else
-        {
-            int r = judge(0, COMMA, MISSING, L"identifier");
-            if (r == 1)
-                lexer.GetWord();
-        }
-        // var <id>{,<id>}
-        while (lexer.GetTokenType() == COMMA)
-        {
-            lexer.GetWord();
-            if (lexer.GetTokenType() == IDENT)
+            while (lexer.GetTokenType() == COMMA)
             {
                 lexer.GetWord();
+                if (lexer.GetTokenType() & IDENT)
+                    lexer.GetWord();
+                else
+                    errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             }
+            if (lexer.GetTokenType() & SEMICOLON)
+                lexer.GetWord();
             else
-            {
-                reportError(MISSING, L"identifier", L"Expected a variable identifier after ','.");
-            }
+                judge(0, SEMICOLON, MISSING, L";");
         }
-        // var <id>{,<id>};
-        if (lexer.GetTokenType() == SEMICOLON)
-            lexer.GetWord();
-        else
+        else if (lexer.GetTokenType() & COMMA)
         {
-            int r = judge(0, followVardecl, MISSING, L"';'");
-            if (r == 1)
+            errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            while (lexer.GetTokenType() == COMMA)
+            {
                 lexer.GetWord();
+                if (lexer.GetTokenType() & IDENT)
+                    lexer.GetWord();
+                else
+                    errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            }
+            if (lexer.GetTokenType() & SEMICOLON)
+                lexer.GetWord();
+            else
+                judge(0, SEMICOLON, MISSING, L";");
         }
+        else if (lexer.GetTokenType() & SEMICOLON)
+        {
+            errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            lexer.GetWord();
+        }
+        else
+            judge(0, followVardecl, ILLEGAL_DEFINE, L"<var>");
     }
     else
-    {
-        int r = judge(0, followVardecl, ILLEGAL_DEFINE, L"<vardecl>");
-        if (r == 1)
-            lexer.GetWord();
-    }
+        judge(0, followVardecl, ILLEGAL_DEFINE, L"<vardecl>");
 }
 
 //<const> → <id>:=<integer>
 // const一定从condecl那边通过判断后过来
 void Parser::constA()
 {
-    //<const> → <id>
-    lexer.GetWord();
-    int r = judge(ASSIGN, NUMBER | followConst, MISSING, L":=");
-
-    //<const> → <id>:=
-    if (r == 1)
+    if (lexer.GetTokenType() == IDENT)
     {
         lexer.GetWord();
-        r = judge(NUMBER, followConst, MISSING, L"integer");
-
         //<const> → <id>:=<integer>
-        if (r == 1)
+        if (lexer.GetTokenType() == ASSIGN)
+            lexer.GetWord();
+        if (lexer.GetTokenType() != NUMBER)
         {
+            errorHandle.error(MISSING, L":=", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             lexer.GetWord();
         }
+
+        lexer.GetWord();
+    }
+    else if (lexer.GetTokenType() == ASSIGN)
+    {
+        errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
+                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        lexer.GetWord();
+        lexer.GetWord();
     }
     else if (lexer.GetTokenType() == NUMBER)
-    { //<const> → <id> <integer>
+    {
+        errorHandle.error(MISSING, L"<id>:=", lexer.GetPreWordRow(),
+                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
         lexer.GetWord();
-    } // 到const的follow集合
+    }
+    else
+        judge(0, followConst, ILLEGAL_DEFINE, L"<const>");
 }
 
 //<condecl> → const <const>{,<const>};
@@ -561,35 +777,41 @@ void Parser::condecl()
     {
         //<condecl> → const
         lexer.GetWord();
-
-        if (lexer.GetTokenType() == firstConst) //<condecl> → const <const>
+        if (lexer.GetTokenType() & firstConst) //<condecl> → const <const>
+        {
             constA();
-        else
-            reportError(MISSING, L"constant declaration", L"Expected a constant after 'const'.");
-
-        while (lexer.GetTokenType() == COMMA)
-        {
-            lexer.GetWord();
-            if (lexer.GetTokenType() == firstConst)
-                constA();
-            else if (lexer.GetTokenType() == COMMA)
-                reportError(REDUNDENT, L"','", L"Unexpected ',' without a following constant.");
-        }
-
-        if (lexer.GetTokenType() == SEMICOLON)
-            lexer.GetWord();
-        else
-        {
-            int r = judge(SEMICOLON, followCondecl, EXPECT_STH_FIND_ANTH, L";", lexer.GetStrToken().c_str());
-            if (r == 1)
+            while (lexer.GetTokenType() & COMMA)
+            {
                 lexer.GetWord();
+                constA();
+            }
+            if (lexer.GetTokenType() & SEMICOLON)
+                lexer.GetWord();
+            else
+                judge(0, followCondecl, MISSING, L";");
         }
-    }
-    else
-    {
-        int r = judge(0, followCondecl, ILLEGAL_DEFINE, L"condecl");
-        if (r == 1)
+        else if (lexer.GetTokenType() & COMMA)
+        {
+            errorHandle.error(MISSING, L"<const>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            while (lexer.GetTokenType() & COMMA)
+            {
+                lexer.GetWord();
+                constA();
+            }
+            if (lexer.GetTokenType() & SEMICOLON)
+                lexer.GetWord();
+            else
+                judge(0, followCondecl, MISSING, L";");
+        }
+        else if (lexer.GetTokenType() & SEMICOLON)
+        {
+            errorHandle.error(MISSING, L"<const>", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             lexer.GetWord();
+        }
+        else
+            judge(0, followCondecl, ILLEGAL_DEFINE, L"<condecl>");
     }
 }
 
@@ -603,97 +825,176 @@ void Parser::proc()
         if (lexer.GetTokenType() == IDENT)
         {
             lexer.GetWord();
-        }
-        else
-        {
-            int r = judge(0, LPAREN, EXPECT_STH_FIND_ANTH, L"identifier", (L"'" + lexer.GetStrToken() + L"'").c_str());
-            if (r == 1)
-                lexer.GetWord();
-        }
-        // <proc> -> procedure id (
-        if (lexer.GetTokenType() == LPAREN)
-        {
-            lexer.GetWord();
-        }
-        else
-        {
-            int r = judge(0, IDENT | RPAREN, MISSING, L"'('");
-            if (r == 1)
-                lexer.GetWord();
-        }
-        // <proc> -> procedure id ([id {,id}]
-        // 分析至形参列表
-        if (lexer.GetTokenType() == IDENT)
-        {
-            lexer.GetWord();
-            while (lexer.GetTokenType() == COMMA)
+            if (lexer.GetTokenType() & LPAREN)
             {
                 lexer.GetWord();
-                if (lexer.GetTokenType() == IDENT)
+                if (lexer.GetTokenType() & IDENT)
                 {
                     lexer.GetWord();
+                    while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & IDENT))
+                    {
+                        if (lexer.GetTokenType() & COMMA)
+                            lexer.GetWord();
+                        else
+                            errorHandle.error(MISSING, L"','",
+                                              lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                        if (lexer.GetTokenType() & IDENT)
+                            lexer.GetWord();
+                        else
+                            errorHandle.error(MISSING, L"'<id>'",
+                                              lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    }
+                }
+                if (lexer.GetTokenType() & RPAREN)
+                {
+                    lexer.GetWord();
+                    if (lexer.GetTokenType() & SEMICOLON)
+                    {
+                        lexer.GetWord();
+                        block();
+                        while (lexer.GetTokenType() & SEMICOLON)
+                        {
+                            lexer.GetWord();
+                            proc();
+                        }
+                    }
+                    else
+                    {
+                        errorHandle.error(MISSING, L"';'",
+                                          lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                        block();
+                        while (lexer.GetTokenType() & SEMICOLON)
+                        {
+                            lexer.GetWord();
+                            proc();
+                        }
+                    }
+                }
+            }
+            else if (lexer.GetTokenType() & IDENT)
+            {
+                errorHandle.error(MISSING, L"'('",
+                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                lexer.GetWord();
+                while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & IDENT))
+                {
+                    if (lexer.GetTokenType() & COMMA)
+                        lexer.GetWord();
+                    else
+                        errorHandle.error(MISSING, L"','",
+                                          lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    if (lexer.GetTokenType() & IDENT)
+                        lexer.GetWord();
+                    else
+                        errorHandle.error(MISSING, L"'<id>'",
+                                          lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                }
+                if (lexer.GetTokenType() & RPAREN)
+                {
+                    lexer.GetWord();
+                    if (lexer.GetTokenType() & SEMICOLON)
+                    {
+                        lexer.GetWord();
+                        block();
+                        while (lexer.GetTokenType() & SEMICOLON)
+                        {
+                            lexer.GetWord();
+                            proc();
+                        }
+                    }
+                    else
+                    {
+                        errorHandle.error(MISSING, L"';'",
+                                          lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                        block();
+                        while (lexer.GetTokenType() & SEMICOLON)
+                        {
+                            lexer.GetWord();
+                            proc();
+                        }
+                    }
+                }
+            }
+            else if (lexer.GetTokenType() & RPAREN)
+            {
+                errorHandle.error(MISSING, L"'('",
+                                  lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                lexer.GetWord();
+                if (lexer.GetTokenType() & SEMICOLON)
+                {
+                    lexer.GetWord();
+                    block();
+                    while (lexer.GetTokenType() & SEMICOLON)
+                    {
+                        lexer.GetWord();
+                        proc();
+                    }
                 }
                 else
                 {
-                    errorHandle.error(REDUNDENT, L"','",
+                    errorHandle.error(MISSING, L"';'",
                                       lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    block();
+                    while (lexer.GetTokenType() & SEMICOLON)
+                    {
+                        lexer.GetWord();
+                        proc();
+                    }
                 }
             }
         }
-        // <proc> -> procedure id ([id {,id}])
-        if (lexer.GetTokenType() == RPAREN)
+        else if (lexer.GetTokenType() & LPAREN)
         {
-            lexer.GetWord();
-        }
-        else
-        {
-            int r = judge(0, SEMICOLON, MISSING, L"')'");
-            if (r == 1)
-                lexer.GetWord();
-        }
-        // <proc> -> procedure id ([id {,id}]);
-        if (lexer.GetTokenType() == SEMICOLON)
-        {
-            lexer.GetWord();
-        }
-        else
-        {
-            int r = judge(0, firstBlock, MISSING, L"';'");
-            if (r == 1)
-                lexer.GetWord();
-        }
-        // <proc> -> procedure id ([id {,id}]);<block> {;<proc>}
+            errorHandle.error(MISSING, L"'<id>'",
+                              lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
 
-        if (lexer.GetTokenType() & firstBlock)
-        {
-            block();
-            // 当前过程结束，开始分析下面的过程
-            while (lexer.GetTokenType() == SEMICOLON)
+            lexer.GetWord();
+            if (lexer.GetTokenType() & IDENT)
             {
                 lexer.GetWord();
-                // FIRST(proc)
-                if (lexer.GetTokenType() == PROC_SYM)
+                while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & IDENT))
                 {
-                    proc();
+                    if (lexer.GetTokenType() & COMMA)
+                        lexer.GetWord();
+                    else
+                        errorHandle.error(MISSING, L"','",
+                                          lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    if (lexer.GetTokenType() & IDENT)
+                        lexer.GetWord();
+                    else
+                        errorHandle.error(MISSING, L"'<id>'",
+                                          lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                }
+            }
+            if (lexer.GetTokenType() & RPAREN)
+            {
+                lexer.GetWord();
+                if (lexer.GetTokenType() & SEMICOLON)
+                {
+                    lexer.GetWord();
+                    block();
+                    while (lexer.GetTokenType() & SEMICOLON)
+                    {
+                        lexer.GetWord();
+                        proc();
+                    }
                 }
                 else
                 {
-                    errorHandle.error(REDUNDENT, L"';'",
+                    errorHandle.error(MISSING, L"';'",
                                       lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    block();
+                    while (lexer.GetTokenType() & SEMICOLON)
+                    {
+                        lexer.GetWord();
+                        proc();
+                    }
                 }
             }
-        }
-        else
-        {
-            judge(0, firstBody, MISSING, L"begin");
         }
     }
     else
-    {
-        int r = judge(0, followProc, ILLEGAL_DEFINE, L"procedure");
-        if (r == 1)
-            lexer.GetWord();
-    }
+        judge(0, followProc, ILLEGAL_DEFINE, L"procedure");
 }
 
 //<block> → [<condecl>][<vardecl>][<proc>]<body>

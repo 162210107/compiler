@@ -1,6 +1,7 @@
-program test8;
-var i;
+program a;
+var x, y, z;
 begin
-    while i <= 10
-    do
+    x := 10;
+    y := 20
+    z := x + y
 end
