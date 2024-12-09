@@ -95,9 +95,19 @@ void Parser::statement()
     // <statement> -> id := <exp>
     if (lexer.GetTokenType() == IDENT)
     {
+        int pos = symTable.SearchInfo(lexer.GetStrToken(), Category::VAR);
+        VarInfo *cur_info = nullptr;
+        if (pos == -1)
+            errorHandle.error(UNDECLARED_IDENT, lexer.GetStrToken().c_str(),
+                              lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        else
+            cur_info = (VarInfo *)symTable.table[pos].info;
         lexer.GetWord();
         if (lexer.GetTokenType() == ASSIGN)
         {
+            if (cur_info && cur_info->cat == Category::CST)
+                errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             lexer.GetWord();
             exp();
         }
@@ -115,10 +125,8 @@ void Parser::statement()
             exp();
         }
         else
-        {
             errorHandle.error(ILLEGAL_DEFINE, L"<ident>", lexer.GetPreWordRow(),
                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-        }
     }
     else if (lexer.GetTokenType() & IF_SYM)
     { // <statement> -> if <lexp> then <statement> [else <statement>]
@@ -187,9 +195,21 @@ void Parser::statement()
     else if (lexer.GetTokenType() == CALL_SYM)
     { // <statement> -> call id ([{<exp>{,<exp>}])
         lexer.GetWord();
+        ProcInfo *cur_info = nullptr;
         // <statement> -> call id
         if (lexer.GetTokenType() & IDENT)
         {
+            int pos = symTable.SearchInfo(lexer.GetStrToken(), Category::PROCE);
+            // 未查找到过程名
+            if (pos == -1)
+                errorHandle.error(UNDECLARED_PROC, lexer.GetStrToken().c_str(), lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            else
+                cur_info = (ProcInfo *)symTable.table[pos].info;
+            // 若调用未定义的过程
+            if (cur_info && !cur_info->isDefined)
+                errorHandle.error(UNDEFINED_PROC, lexer.GetStrToken().c_str(),  lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             lexer.GetWord();
             if (lexer.GetTokenType() & LPAREN)
             {
@@ -290,12 +310,42 @@ void Parser::statement()
             lexer.GetWord();
             if (lexer.GetTokenType() & IDENT)
             {
+                int pos = symTable.SearchInfo(lexer.GetStrToken(), Category::VAR);
+                // 未查找到过程名
+                VarInfo *cur_info = nullptr;
+                if (pos == -1)
+                    errorHandle.error(UNDECLARED_PROC, lexer.GetStrToken().c_str(), lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                else
+                    cur_info = (VarInfo *)symTable.table[pos].info;
+                if (cur_info)
+                {
+                    if (cur_info->cat == Category::CST)
+                        errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                }
                 lexer.GetWord();
                 while (lexer.GetTokenType() & COMMA)
                 {
                     lexer.GetWord();
                     if (lexer.GetTokenType() & IDENT)
+                    {
+                        int pos1 = symTable.SearchInfo(lexer.GetStrToken(), Category::VAR);
+                        // 未查找到过程名
+                        VarInfo *cur_info1 = nullptr;
+                        if (pos1 == -1)
+                            errorHandle.error(UNDECLARED_PROC, lexer.GetStrToken().c_str(), lexer.GetPreWordRow(),
+                                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                        else
+                            cur_info1 = (VarInfo *)symTable.table[pos1].info;
+                        if (cur_info1)
+                        {
+                            if (cur_info1->cat == Category::CST)
+                                errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
+                                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                        }
                         lexer.GetWord();
+                    }
                     else if (lexer.GetTokenType() & COMMA)
                         errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
                                           lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -326,7 +376,23 @@ void Parser::statement()
                 {
                     lexer.GetWord();
                     if (lexer.GetTokenType() & IDENT)
+                    {
+                        int pos = symTable.SearchInfo(lexer.GetStrToken(), Category::VAR);
+                        // 未查找到过程名
+                        VarInfo *cur_info = nullptr;
+                        if (pos == -1)
+                            errorHandle.error(UNDECLARED_PROC, lexer.GetStrToken().c_str(), lexer.GetPreWordRow(),
+                                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                        else
+                            cur_info = (VarInfo *)symTable.table[pos].info;
+                        if (cur_info)
+                        {
+                            if (cur_info->cat == Category::CST)
+                                errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
+                                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                        }
                         lexer.GetWord();
+                    }
                     else if (lexer.GetTokenType() & COMMA)
                         errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
                                           lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -345,21 +411,49 @@ void Parser::statement()
                                       lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             }
             else if (lexer.GetTokenType() & followStatement)
-            {
                 errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
                                   lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-            }
         }
         else if (lexer.GetTokenType() & IDENT)
         {
             errorHandle.error(MISSING, L"(", lexer.GetPreWordRow(),
                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            int pos = symTable.SearchInfo(lexer.GetStrToken(), Category::VAR);
+            // 未查找到过程名
+            VarInfo *cur_info = nullptr;
+            if (pos == -1)
+                errorHandle.error(UNDECLARED_PROC, lexer.GetStrToken().c_str(), lexer.GetPreWordRow(),
+                                  lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            else
+                cur_info = (VarInfo *)symTable.table[pos].info;
+            if (cur_info)
+            {
+                if (cur_info->cat == Category::CST)
+                    errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            }
             lexer.GetWord();
             while (lexer.GetTokenType() & COMMA)
             {
                 lexer.GetWord();
                 if (lexer.GetTokenType() & IDENT)
+                {
+                    int pos1 = symTable.SearchInfo(lexer.GetStrToken(), Category::VAR);
+                    // 未查找到过程名
+                    VarInfo *cur_info1 = nullptr;
+                    if (pos1 == -1)
+                        errorHandle.error(UNDECLARED_PROC, lexer.GetStrToken().c_str(), lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    else
+                        cur_info1 = (VarInfo *)symTable.table[pos1].info;
+                    if (cur_info1)
+                    {
+                        if (cur_info1->cat == Category::CST)
+                            errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
+                                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    }
                     lexer.GetWord();
+                }
                 else if (lexer.GetTokenType() & COMMA)
                     errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
                                       lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -391,7 +485,23 @@ void Parser::statement()
             {
                 lexer.GetWord();
                 if (lexer.GetTokenType() & IDENT)
+                {
+                    int pos = symTable.SearchInfo(lexer.GetStrToken(), Category::VAR);
+                    // 未查找到过程名
+                    VarInfo *cur_info = nullptr;
+                    if (pos == -1)
+                        errorHandle.error(UNDECLARED_PROC, lexer.GetStrToken().c_str(), lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    else
+                        cur_info = (VarInfo *)symTable.table[pos].info;
+                    if (cur_info)
+                    {
+                        if (cur_info->cat == Category::CST)
+                            errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
+                                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    }
                     lexer.GetWord();
+                }
                 else if (lexer.GetTokenType() & COMMA)
                     errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
                                       lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -575,7 +685,24 @@ void Parser::term()
 void Parser::factor()
 {
     if (lexer.GetTokenType() == IDENT)
+    {
+        // 查找变量符号
+        int pos = symTable.SearchInfo(lexer.GetStrToken(), Category::VAR);
+        VarInfo *cur_info = nullptr;
+        if (pos == -1)
+            errorHandle.error(UNDECLARED_IDENT, lexer.GetStrToken().c_str(),
+                              lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        else
+            cur_info = (VarInfo *)symTable.table[pos].info;
+        if (cur_info)
+        {
+            if (cur_info->cat == Category::CST)
+            {
+                int val = cur_info->GetValue();
+            }
+        }
         lexer.GetWord();
+    }
     else if (lexer.GetTokenType() == NUMBER)
         lexer.GetWord();
     else if (lexer.GetTokenType() == LPAREN)
@@ -653,8 +780,9 @@ void Parser::lexp()
         exp();
         // 检查逻辑操作符
         if (lexer.GetTokenType() & (EQL | NEQ | LSS | LEQ | GRT | GEQ))
-                exp(); // 解析右侧表达式
-        else{
+            exp(); // 解析右侧表达式
+        else
+        {
             // 缺少逻辑操作符的情况
             errorHandle.error(MISSING,
                               L"Expected a logical operator (e.g., '=', '<>', '<') after the expression.",
@@ -681,12 +809,18 @@ void Parser::vardecl()
         // var <id>
         if (lexer.GetTokenType() & IDENT)
         {
+            symTable.InsertToTable(lexer.GetStrToken(), glo_offset, Category::VAR);
+            glo_offset += 4;
             lexer.GetWord();
             while (lexer.GetTokenType() == COMMA)
             {
                 lexer.GetWord();
                 if (lexer.GetTokenType() & IDENT)
+                {
+                    symTable.InsertToTable(lexer.GetStrToken(), glo_offset, Category::VAR);
+                    glo_offset += 4;
                     lexer.GetWord();
+                }
                 else
                     errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
                                       lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -704,7 +838,11 @@ void Parser::vardecl()
             {
                 lexer.GetWord();
                 if (lexer.GetTokenType() & IDENT)
+                {
+                    symTable.InsertToTable(lexer.GetStrToken(), glo_offset, Category::VAR);
+                    glo_offset += 4;
                     lexer.GetWord();
+                }
                 else
                     errorHandle.error(MISSING, L"<id>", lexer.GetPreWordRow(),
                                       lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -733,18 +871,33 @@ void Parser::constA()
 {
     if (lexer.GetTokenType() == IDENT)
     {
+        symTable.InsertToTable(lexer.GetStrToken(), 0, CST);
         lexer.GetWord();
         //<const> → <id>:=<integer>
         if (lexer.GetTokenType() == ASSIGN)
             lexer.GetWord();
-        if (lexer.GetTokenType() != NUMBER)
+        else if (lexer.GetTokenType() != ASSIGN && lexer.GetTokenType() != NUMBER)
         {
             errorHandle.error(MISSING, L":=", lexer.GetPreWordRow(),
                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             lexer.GetWord();
         }
-
-        lexer.GetWord();
+        else if (lexer.GetTokenType() == NUMBER)
+        {
+            errorHandle.error(MISSING, L":=", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            symTable.table[symTable.table.size() - 1].info->SetValue(lexer.GetStrToken());
+            lexer.GetWord();
+            return;
+        }
+        if (lexer.GetTokenType() == NUMBER)
+        {
+            symTable.table[symTable.table.size() - 1].info->SetValue(lexer.GetStrToken());
+            lexer.GetWord();
+        }
+        else
+            errorHandle.error(MISSING, L"[number]", lexer.GetPreWordRow(),
+                              lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
     }
     else if (lexer.GetTokenType() == ASSIGN)
     {
@@ -814,15 +967,29 @@ void Parser::proc()
     if (lexer.GetTokenType() == PROC_SYM)
     {
         lexer.GetWord();
+        ProcInfo *cur_info = nullptr; // 临时变量，记录当前过程符号表项的信息
         // <proc> -> procedure <id>
         if (lexer.GetTokenType() == IDENT)
         {
+            symTable.MkTable();
+            int cur_proc = symTable.InsertToTable(lexer.GetStrToken(), 0, Category::PROCE);
+            if (cur_proc != -1)
+            {
+                cur_info = (ProcInfo *)symTable.table[cur_proc].info;
+            }
             lexer.GetWord();
             if (lexer.GetTokenType() & LPAREN)
             {
+                symTable.display.push_back(0);
+                symTable.level++;
                 lexer.GetWord();
                 if (lexer.GetTokenType() & IDENT)
                 {
+                    int form_var = symTable.InsertToTable(lexer.GetStrToken(), glo_offset, Category::FORM);
+                    glo_offset += 4;
+                    if (cur_info)
+                        cur_info->formVarList.push_back(form_var);
+
                     lexer.GetWord();
                     while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & IDENT))
                     {
@@ -832,7 +999,13 @@ void Parser::proc()
                             errorHandle.error(MISSING, L"','",
                                               lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                         if (lexer.GetTokenType() & IDENT)
+                        {
+                            int form_var = symTable.InsertToTable(lexer.GetStrToken(), glo_offset, Category::FORM);
+                            glo_offset += 4;
+                            if (cur_info)
+                                cur_info->formVarList.push_back(form_var);
                             lexer.GetWord();
+                        }
                         else
                             errorHandle.error(MISSING, L"'<id>'",
                                               lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -866,6 +1039,12 @@ void Parser::proc()
             }
             else if (lexer.GetTokenType() & IDENT)
             {
+                symTable.display.push_back(0);
+                symTable.level++;
+                int form_var = symTable.InsertToTable(lexer.GetStrToken(), glo_offset, Category::FORM);
+                glo_offset += 4;
+                if (cur_info)
+                    cur_info->formVarList.push_back(form_var);
                 errorHandle.error(MISSING, L"'('",
                                   lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                 lexer.GetWord();
@@ -877,7 +1056,13 @@ void Parser::proc()
                         errorHandle.error(MISSING, L"','",
                                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                     if (lexer.GetTokenType() & IDENT)
+                    {
+                        int form_var = symTable.InsertToTable(lexer.GetStrToken(), glo_offset, Category::FORM);
+                        glo_offset += 4;
+                        if (cur_info)
+                            cur_info->formVarList.push_back(form_var);
                         lexer.GetWord();
+                    }
                     else
                         errorHandle.error(MISSING, L"'<id>'",
                                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -1004,6 +1189,9 @@ void Parser::block()
         if (lexer.GetTokenType() & firstVardecl)
             vardecl();
 
+        size_t cur_proc = symTable.sp;
+        ProcInfo *cur_info = (ProcInfo *)symTable.table[cur_proc].info;
+        symTable.AddWidth(cur_proc,glo_offset);
         //<block> → [<condecl>][<vardecl>]<proc>
         if (lexer.GetTokenType() & firstProc)
             proc();
@@ -1023,6 +1211,8 @@ void Parser::prog()
     //<prog> → program <id>
     if (lexer.GetTokenType() == IDENT)
     {
+        symTable.MkTable();
+        symTable.EnterProgm(lexer.GetStrToken());
         lexer.GetWord();
         if (lexer.GetTokenType() == SEMICOLON)
         {
@@ -1052,6 +1242,8 @@ void Parser::prog()
         errorHandle.error(MISSING, L"program name",
                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
 
+        symTable.MkTable();
+        symTable.EnterProgm(lexer.GetStrToken());
         // TODO
         lexer.GetWord();
         block(); // 进入<block>
@@ -1063,6 +1255,8 @@ void Parser::prog()
 
     if (lexer.GetTokenType() & firstBlock)
     {
+        symTable.MkTable();
+        symTable.EnterProgm(lexer.GetStrToken());
         // ERROR
         errorHandle.error(EXPECT_STH_FIND_ANTH, L"id", (L"'" + lexer.GetStrToken() + L"'").c_str(),
                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());

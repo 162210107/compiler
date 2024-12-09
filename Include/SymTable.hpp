@@ -5,24 +5,15 @@
 #include <lexer.hpp>
 using namespace std;
 
-enum Category
-{
-    NIL,   // 空
-    VAR,   // 变量
-    PROCE, // 过程
-    CST,   // 常量
-    FORM,  // 形参
-    PROG,  // 程序刚开始
-};
-
 // 父类信息类
 class Information
 {
 public:
     Category cat; // 种属
     size_t level; // 属于的子程序层数
+    size_t offset;
 
-    Information():cat(Category::NIL),level(0){};
+    Information():cat(Category::NIL),level(0),offset(0){};
     virtual void SetValue(wstring value) {}
     virtual int GetValue() { return -1; }
     virtual void show();
@@ -50,8 +41,10 @@ public:
     size_t entry;               // 过程的中间代码入口地址
     vector<size_t> formVarList; // 过程的形参入口地址列表
 
-    ProcInfo() : Information(){};
+    ProcInfo();
     void show() override;
+    void SetEntry(size_t entry) { this->entry = entry; };
+    size_t GetEntry(){ return this->entry; };
 };
 
 // 符号表项
@@ -76,17 +69,16 @@ public:
 
 public:
     SymTable() : sp(0) ,level(0){display.resize(1, 0);};
-    void SetLevel(size_t nowlevel){level=nowlevel;};
-    size_t GetLevel(){return level;};
-    size_t GetSp(){return sp;};
     SymTableItem GetTable(int num);
     void PopDisplay(){display.pop_back();}
 
+    void EnterProgm(wstring name);
     void showAll();
-    int InsertToTable(wstring name, Category cat);  // 插入表格
+    int InsertToTable(wstring name, size_t offset,Category cat);  // 插入表格
     int SearchInfo(wstring name,Category cat);      // 查找过程名在符号表中位置，主过程返回-1
     void MkTable();                                 // 进入新的过程，获取新的过程起始位置sp
     void InitAndClear();                                   // 清空整个程序的符号表
+    void AddWidth(size_t addr, size_t width);
 };
 
 extern SymTable symTable;

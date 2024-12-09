@@ -1,5 +1,5 @@
-program test11;
-var x;
+program 2test11;
+var x
 begin
     read x);
     read x;

@@ -97,6 +97,69 @@ const int ERR_CNT = 70;      // 报错种数
 #define PROGM_SYM 0x40000000
 #define ELSE_SYM 0x80000000
 
+//PCode
+#define P_CODE_CNT 10 // P-Code的种类数
+#define UNIT_SIZE 4 // 一个内存单元的字节大小
+#define ACT_PRE_REC_SIZE 3 // 活动记录的预先大小（RA、DL、全局Display）
+
+#define OPR_RETURN 0
+#define OPR_NEGTIVE 1
+#define OPR_ADD 2
+#define OPR_SUB 3
+#define OPR_MULTI 4
+#define OPR_DIVIS 5
+#define OPR_ODD 6
+#define OPR_EQL 7
+#define OPR_NEQ 8
+#define OPR_LSS 9
+#define OPR_GEQ 10
+#define OPR_GRT 11
+#define OPR_LEQ 12
+#define OPR_PRINT 13
+#define OPR_PRINTLN 14
+
+// 中间代码指令集
+enum Operation {
+    lit,       // 取常量a放入数据栈栈顶
+    opr,       // 执行运算，a表示执行某种运算
+    load,      // 取变量（相对地址为a，层差为L）放到数据栈的栈顶
+    store,     // 将数据栈栈顶的内容存入变量（相对地址为a，层次差为L）
+    call,      // 调用过程（转子指令）（入口地址为a，层次差为L）
+    alloc,     // 数据栈栈顶指针增加a
+    jmp,       // 条件转移到地址为a的指令
+    jpc,       // 条件转移指令，转移到地址为a的指令
+    red,       // 读数据并存入变量（相对地址为a，层次差为L）
+    wrt,       // 将栈顶内容输出
+};
+
+wstring op_map[P_CODE_CNT] = {
+    L"LIT",
+    L"OPR",
+    L"LOD",
+    L"STO",
+    L"CAL",
+    L"INT",
+    L"JMP",
+    L"JPC",
+    L"RED",
+    L"WRT"
+};
+
+
+//符号表元素类型
+enum Category
+{
+    NIL,   // 空
+    VAR,   // 变量
+    PROCE, // 过程
+    CST,   // 常量
+    FORM,  // 形参
+    PROG,  // 程序刚开始
+};
+
+//全局变量
+size_t glo_offset;
+
 #ifndef UNICODE
 #define UNICODE
 #endif
