@@ -1,9 +1,19 @@
 #ifndef _SYMBOL_TABLE_HPP
 #define _SYMBOL_TABLE_HPP
 #include <types.hpp>
-#include <ErrorHandle.hpp>
 #include <lexer.hpp>
 using namespace std;
+
+//符号表元素类型
+enum Category
+{
+    NIL,   // 空
+    VAR,   // 变量
+    PROCE, // 过程
+    CST,   // 常量
+    FORM,  // 形参
+    PROG,  // 程序刚开始
+};
 
 // 父类信息类
 class Information

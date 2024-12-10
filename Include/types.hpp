@@ -17,7 +17,6 @@
 #include <unordered_map>
 #include <vector>
 #include <windows.h>
-
 #include <ostream>
 
 // #include <wmcommn.h>
@@ -118,47 +117,8 @@ const int ERR_CNT = 70;      // 报错种数
 #define OPR_PRINT 13
 #define OPR_PRINTLN 14
 
-// 中间代码指令集
-enum Operation {
-    lit,       // 取常量a放入数据栈栈顶
-    opr,       // 执行运算，a表示执行某种运算
-    load,      // 取变量（相对地址为a，层差为L）放到数据栈的栈顶
-    store,     // 将数据栈栈顶的内容存入变量（相对地址为a，层次差为L）
-    call,      // 调用过程（转子指令）（入口地址为a，层次差为L）
-    alloc,     // 数据栈栈顶指针增加a
-    jmp,       // 条件转移到地址为a的指令
-    jpc,       // 条件转移指令，转移到地址为a的指令
-    red,       // 读数据并存入变量（相对地址为a，层次差为L）
-    wrt,       // 将栈顶内容输出
-};
-
-wstring op_map[P_CODE_CNT] = {
-    L"LIT",
-    L"OPR",
-    L"LOD",
-    L"STO",
-    L"CAL",
-    L"INT",
-    L"JMP",
-    L"JPC",
-    L"RED",
-    L"WRT"
-};
-
-
-//符号表元素类型
-enum Category
-{
-    NIL,   // 空
-    VAR,   // 变量
-    PROCE, // 过程
-    CST,   // 常量
-    FORM,  // 形参
-    PROG,  // 程序刚开始
-};
-
 //全局变量
-size_t glo_offset;
+extern size_t glo_offset;
 
 #ifndef UNICODE
 #define UNICODE

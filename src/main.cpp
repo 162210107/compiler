@@ -74,7 +74,8 @@ void TestSymTable(){
         }
 
         //TODO
-
+        parser.analyze();
+        symTable.showAll();
 
         return;
     }
@@ -83,6 +84,6 @@ void TestSymTable(){
 int main()
 {
     // TestLexer();
-    // TestSymTable();
-    TestParser();
+    TestSymTable();
+    // TestParser();
 }

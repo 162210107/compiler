@@ -1,0 +1,25 @@
+program A;
+var a;
+procedure P(i);
+    var a;
+    procedure Pa(i);
+        var a;
+        procedure Pa1(i);
+            var a;
+            begin
+                a:=1
+            end;
+        begin
+            a:=1
+        end;    
+    procedure Pb(i);
+        var a;
+        begin
+            a:=1
+        end;
+     begin
+         a:=1
+     end
+begin
+    a:=1;
+end

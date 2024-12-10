@@ -1,5 +1,5 @@
 #include <types.hpp>
-
+size_t glo_offset;
 using namespace std;
 
 // wstring 转 int
