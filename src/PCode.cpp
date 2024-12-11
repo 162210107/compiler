@@ -1,6 +1,19 @@
 #include <PCode.hpp>
 PCodeList pcodelist;
 
+wstring op_map[P_CODE_CNT] = {
+    L"LIT",
+    L"OPR",
+    L"LOD",
+    L"STO",
+    L"CAL",
+    L"INT",
+    L"JMP",
+    L"JPC",
+    L"RED",
+    L"WRT"
+};
+
 int PCodeList::emit(Operation op, int L, int a)
 {
     code_list.push_back(PCode(op, L, a));

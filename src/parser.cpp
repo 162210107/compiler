@@ -127,70 +127,100 @@ void Parser::statement()
         else
             errorHandle.error(ILLEGAL_DEFINE, L"<ident>", lexer.GetPreWordRow(),
                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        if (cur_info)
+            // 赋值的P代码，当前栈顶为计算出的表达式
+            pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
     }
     else if (lexer.GetTokenType() & IF_SYM)
     { // <statement> -> if <lexp> then <statement> [else <statement>]
         lexer.GetWord();
         lexp();
+        int entry_jpc = -1, entry_jmp = -1;
         // system("pause");
         // wcout << lexer.GetTokenType() << endl;
         if (lexer.GetTokenType() & THEN_SYM)
         {
+            entry_jpc = pcodelist.emit(jpc, 0, 0);
             // system("pause");
             // wcout << (lexer.GetTokenType()&THEN_SYM)<<L"now" << endl;
             lexer.GetWord();
             statement();
             if (lexer.GetTokenType() & ELSE_SYM)
             {
+                entry_jmp = pcodelist.emit(jmp, 0, 0);
                 lexer.GetWord();
+                // 将else入口地址回填至jpc
+                pcodelist.backpatch(entry_jpc, pcodelist.code_list.size());
                 statement();
+                // 有else，则将if外入口地址回填至jmp
+                pcodelist.backpatch(entry_jmp, pcodelist.code_list.size());
             }
+            else
+                // 没有else，则将if外入口地址回填至jpc
+                pcodelist.backpatch(entry_jpc, pcodelist.code_list.size());
         }
         else if (lexer.GetTokenType() & firstStatement)
         {
+            entry_jpc = pcodelist.emit(jpc, 0, 0);
             // system("pause");
             errorHandle.error(MISSING, L"then", lexer.GetPreWordRow(),
                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             statement();
             if (lexer.GetTokenType() & ELSE_SYM)
             {
+                entry_jmp = pcodelist.emit(jmp, 0, 0);
                 lexer.GetWord();
+                // 将else入口地址回填至jpc
+                pcodelist.backpatch(entry_jpc, pcodelist.code_list.size());
                 statement();
+                // 有else，则将if外入口地址回填至jmp
+                pcodelist.backpatch(entry_jmp, pcodelist.code_list.size());
             }
+            else
+                // 没有else，则将if外入口地址回填至jpc
+                pcodelist.backpatch(entry_jpc, pcodelist.code_list.size());
         }
         else if (lexer.GetTokenType() & ELSE_SYM)
         {
+            entry_jmp = pcodelist.emit(jmp, 0, 0);
             // system("pause");
             // wcout << lexer.GetTokenType() << endl;
             lexer.GetWord();
             statement();
+            pcodelist.backpatch(entry_jmp, pcodelist.code_list.size());
         }
         else
-        {
             errorHandle.error(ILLEGAL_DEFINE, L"<if>", lexer.GetPreWordRow(),
                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-        }
     }
     else if (lexer.GetTokenType() == WHILE_SYM)
     { // <statement> -> while <lexp> do <statement>
         lexer.GetWord();
+        // FIRST(lexp)
+        size_t condition = pcodelist.code_list.size();
         lexp();
+        // 当前栈顶为条件表达式的布尔值
+        // 条件为假跳转，待回填循环出口地址
+        size_t loop = pcodelist.emit(jpc, 0, 0);
         if (lexer.GetTokenType() == DO_SYM)
         {
             lexer.GetWord();
             statement();
+            // 无条件跳转至循环条件判断前
+            pcodelist.emit(jmp, 0, condition);
         }
         else if (lexer.GetTokenType() & firstStatement)
         {
             errorHandle.error(MISSING, L"do", lexer.GetPreWordRow(),
                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             statement();
+            // 无条件跳转至循环条件判断前
+            pcodelist.emit(jmp, 0, condition);
         }
         else
-        {
             errorHandle.error(MISSING, L"do", lexer.GetPreWordRow(),
                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-        }
+        pcodelist.backpatch(loop, pcodelist.code_list.size());
     }
     else if (lexer.GetTokenType() == CALL_SYM)
     { // <statement> -> call id ([{<exp>{,<exp>}])
@@ -217,6 +247,10 @@ void Parser::statement()
                 if (lexer.GetTokenType() & firstExp)
                 {
                     exp();
+                    // 将实参传入即将调用的子过程
+                    if (cur_info)
+                        pcodelist.emit(store, -1, ACT_PRE_REC_SIZE + cur_info->level + 1);
+                    size_t i = 1;
                     while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
                     {
                         if (lexer.GetTokenType() & COMMA)
@@ -224,10 +258,26 @@ void Parser::statement()
                         else
                             errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
                                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-                        exp();
+                        if (lexer.GetTokenType() & firstExp)
+                        {
+                            exp();
+                            // 将实参传入即将调用的子过程
+                            if (cur_info)
+                                pcodelist.emit(store, -1, ACT_PRE_REC_SIZE + cur_info->level + 1 + i++);
+                        }
+                        else
+                            exp();
                     }
+                    // 若实参列表与形参列表变量数不兼容，报错
+                    if (cur_info && i != cur_info->formVarList.size())
+                        errorHandle.error(INCOMPATIBLE_VAR_LIST, lexer.GetPreWordRow(),
+                                          lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                     if (lexer.GetTokenType() & RPAREN)
+                    {
                         lexer.GetWord();
+                        if (cur_info)
+                            pcodelist.emit(call, cur_info->level, cur_info->entry);
+                    }
                     else
                         errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
                                           lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -242,8 +292,11 @@ void Parser::statement()
             {
                 errorHandle.error(MISSING, L"(", lexer.GetPreWordRow(),
                                   lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-
                 exp();
+                // 将实参传入即将调用的子过程
+                if (cur_info)
+                    pcodelist.emit(store, -1, ACT_PRE_REC_SIZE + cur_info->level + 1);
+                size_t i = 1;
                 while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
                 {
                     if (lexer.GetTokenType() & COMMA)
@@ -251,10 +304,26 @@ void Parser::statement()
                     else
                         errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
                                           lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-                    exp();
+                    if (lexer.GetTokenType() & firstExp)
+                    {
+                        exp();
+                        // 将实参传入即将调用的子过程
+                        if (cur_info)
+                            pcodelist.emit(store, -1, ACT_PRE_REC_SIZE + cur_info->level + 1 + i++);
+                    }
+                    else
+                        exp();
                 }
+                // 若实参列表与形参列表变量数不兼容，报错
+                if (cur_info && i != cur_info->formVarList.size())
+                    errorHandle.error(INCOMPATIBLE_VAR_LIST, lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                 if (lexer.GetTokenType() & RPAREN)
+                {
                     lexer.GetWord();
+                    if (cur_info)
+                        pcodelist.emit(call, cur_info->level, cur_info->entry);
+                }
                 else
                     errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
                                       lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -323,6 +392,10 @@ void Parser::statement()
                     if (cur_info->cat == Category::CST)
                         errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
                                           lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                    // 从命令行读一个数据到栈顶
+                    pcodelist.emit(red, 0, 0);
+                    // 将栈顶值送入变量所在地址
+                    pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
                 }
                 lexer.GetWord();
                 while (lexer.GetTokenType() & COMMA)
@@ -343,6 +416,10 @@ void Parser::statement()
                             if (cur_info1->cat == Category::CST)
                                 errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
                                                   lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                            // 从命令行读一个数据到栈顶
+                            pcodelist.emit(red, 0, 0);
+                            // 将栈顶值送入变量所在地址
+                            pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
                         }
                         lexer.GetWord();
                     }
@@ -390,6 +467,10 @@ void Parser::statement()
                             if (cur_info->cat == Category::CST)
                                 errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
                                                   lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                            // 从命令行读一个数据到栈顶
+                            pcodelist.emit(red, 0, 0);
+                            // 将栈顶值送入变量所在地址
+                            pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
                         }
                         lexer.GetWord();
                     }
@@ -431,6 +512,10 @@ void Parser::statement()
                 if (cur_info->cat == Category::CST)
                     errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
                                       lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                // 从命令行读一个数据到栈顶
+                pcodelist.emit(red, 0, 0);
+                // 将栈顶值送入变量所在地址
+                pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
             }
             lexer.GetWord();
             while (lexer.GetTokenType() & COMMA)
@@ -451,6 +536,10 @@ void Parser::statement()
                         if (cur_info1->cat == Category::CST)
                             errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
                                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                        // 从命令行读一个数据到栈顶
+                        pcodelist.emit(red, 0, 0);
+                        // 将栈顶值送入变量所在地址
+                        pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
                     }
                     lexer.GetWord();
                 }
@@ -499,6 +588,10 @@ void Parser::statement()
                         if (cur_info->cat == Category::CST)
                             errorHandle.error(ILLEGAL_RVALUE_ASSIGN, lexer.GetPreWordRow(),
                                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+                        // 从命令行读一个数据到栈顶
+                        pcodelist.emit(red, 0, 0);
+                        // 将栈顶值送入变量所在地址
+                        pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
                     }
                     lexer.GetWord();
                 }
@@ -530,6 +623,7 @@ void Parser::statement()
             if (lexer.GetTokenType() & firstExp)
             {
                 exp();
+                pcodelist.emit(wrt, 0, 0);
                 while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
                 {
                     if (lexer.GetTokenType() & COMMA)
@@ -537,7 +631,13 @@ void Parser::statement()
                     else
                         errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
                                           lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-                    exp();
+                    if (lexer.GetTokenType() & firstExp)
+                    {
+                        exp();
+                        pcodelist.emit(wrt, 0, 0);
+                    }
+                    else
+                        exp();
                 }
                 if (lexer.GetTokenType() & RPAREN)
                     lexer.GetWord();
@@ -562,7 +662,13 @@ void Parser::statement()
                     else
                         errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
                                           lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-                    exp();
+                    if (lexer.GetTokenType() & firstExp)
+                    {
+                        exp();
+                        pcodelist.emit(wrt, 0, 0);
+                    }
+                    else
+                        exp();
                 }
                 if (lexer.GetTokenType() & RPAREN)
                     lexer.GetWord();
@@ -571,16 +677,15 @@ void Parser::statement()
                                       lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             }
             else if (lexer.GetTokenType() & followStatement)
-            {
                 errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
                                   lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-            }
         }
         else if (lexer.GetTokenType() & firstExp)
         {
             errorHandle.error(MISSING, L"(", lexer.GetPreWordRow(),
                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             exp();
+            pcodelist.emit(wrt, 0, 0);
             while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
             {
                 if (lexer.GetTokenType() & COMMA)
@@ -588,7 +693,13 @@ void Parser::statement()
                 else
                     errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
                                       lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-                exp();
+                if (lexer.GetTokenType() & firstExp)
+                {
+                    exp();
+                    pcodelist.emit(wrt, 0, 0);
+                }
+                else
+                    exp();
             }
             if (lexer.GetTokenType() & RPAREN)
                 lexer.GetWord();
@@ -613,7 +724,13 @@ void Parser::statement()
                 else
                     errorHandle.error(MISSING, L",", lexer.GetPreWordRow(),
                                       lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
-                exp();
+                if (lexer.GetTokenType() & firstExp)
+                {
+                    exp();
+                    pcodelist.emit(wrt, 0, 0);
+                }
+                else
+                    exp();
             }
             if (lexer.GetTokenType() & RPAREN)
                 lexer.GetWord();
@@ -633,19 +750,38 @@ void Parser::statement()
 //<exp> → [+|-]<term>{<aop><term>}
 void Parser::exp()
 {
+    unsigned long aop = NUL;
     if (lexer.GetTokenType() & firstExp)
     {
         if (lexer.GetTokenType() & (PLUS | MINUS))
+        {
+            aop = lexer.GetTokenType();
             lexer.GetWord();
+        }
 
         if (lexer.GetTokenType() & firstTerm)
         { //<exp> → [+|-]<term>
             term();
+            if (aop & MINUS)
+                pcodelist.emit(opr, 0, OPR_NEGTIVE);
             //<exp> → [+|-]<term>{<aop><term>}
             while (lexer.GetTokenType() & (PLUS | MINUS))
             {
+                aop = lexer.GetTokenType();
                 lexer.GetWord();
-                term();
+                if (lexer.GetTokenType() & firstTerm)
+                {
+                    term();
+                    // 减
+                    if (aop == MINUS)
+                        pcodelist.emit(opr, 0, OPR_SUB);
+                    // 加
+                    else
+                        pcodelist.emit(opr, 0, OPR_ADD);
+                }
+                else
+                    errorHandle.error(REDUNDENT, lexer.GetStrToken().c_str(),  lexer.GetPreWordRow(),
+                                      lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             }
         }
     }
@@ -662,9 +798,18 @@ void Parser::term()
         factor(); // 处理第一个 factor
         while (lexer.GetTokenType() & (MULTI | DIVIS))
         { //<term> → <factor><mop>
+            unsigned long nop = lexer.GetTokenType();
             lexer.GetWord();
             if (lexer.GetTokenType() & firstFactor) //<term> → <factor>{<mop><factor>}
+            {
                 factor();
+                // 乘
+                if (nop == MULTI)
+                    pcodelist.emit(opr, 0, OPR_MULTI);
+                // 除
+                else
+                    pcodelist.emit(opr, 0, OPR_DIVIS);
+            }
             else if (lexer.GetTokenType() & (MULTI | DIVIS))
                 // 连续操作符的错误情况
                 errorHandle.error(SYNTAX_ERROR, L"<factor>",
@@ -699,16 +844,21 @@ void Parser::factor()
             if (cur_info->cat == Category::CST)
             {
                 int val = cur_info->GetValue();
+                pcodelist.emit(lit, cur_info->level, val);
             }
+            else
+                pcodelist.emit(load, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
         }
         lexer.GetWord();
     }
     else if (lexer.GetTokenType() == NUMBER)
+    {
+        pcodelist.emit(lit, 0, w_str2int(lexer.GetStrToken()));
         lexer.GetWord();
+    }
     else if (lexer.GetTokenType() == LPAREN)
     {
         lexer.GetWord();
-
         exp();
         if (lexer.GetTokenType() == RPAREN)
             lexer.GetWord();
@@ -780,20 +930,60 @@ void Parser::lexp()
         exp();
         // 检查逻辑操作符
         if (lexer.GetTokenType() & (EQL | NEQ | LSS | LEQ | GRT | GEQ))
-            exp(); // 解析右侧表达式
+        {
+            unsigned int lop = lexer.GetTokenType();
+            lexer.GetWord();
+            exp();
+            switch (lop)
+            {
+                // <
+            case LSS:
+                pcodelist.emit(opr, 0, OPR_LSS);
+                break;
+                // <=
+            case LEQ:
+                pcodelist.emit(opr, 0, OPR_LEQ);
+                break;
+                // >
+            case GRT:
+                pcodelist.emit(opr, 0, OPR_GRT);
+                break;
+                // >=
+            case GEQ:
+                pcodelist.emit(opr, 0, OPR_GEQ);
+                break;
+                // <>
+            case NEQ:
+                pcodelist.emit(opr, 0, OPR_NEQ);
+                break;
+                // =
+            case EQL:
+                pcodelist.emit(opr, 0, OPR_EQL);
+                break;
+            default:
+                break;
+            }
+        }
         else
         {
             // 缺少逻辑操作符的情况
             errorHandle.error(MISSING,
                               L"Expected a logical operator (e.g., '=', '<>', '<') after the expression.",
                               lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+            lexer.GetWord();
             exp();
         }
     }
     else if (lexer.GetTokenType() & ODD_SYM)
     {
         lexer.GetWord();
-        exp();
+        if (lexer.GetTokenType() & firstExp)
+        {
+            exp();
+            pcodelist.emit(opr, 0, OPR_ODD);
+        }
+        else
+            errorHandle.error(EXPECT, L"expression", lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
     }
     else
         // 非法的 lexp 开头
@@ -976,6 +1166,9 @@ void Parser::proc()
             if (cur_proc != -1)
             {
                 cur_info = (ProcInfo *)symTable.table[cur_proc].info;
+                // 子过程的入口地址登入符号表，待回填
+                size_t entry = pcodelist.emit(jmp, 0, 0);
+                symTable.table[symTable.table.size() - 1].info->SetEntry(entry);
             }
             lexer.GetWord();
             if (lexer.GetTokenType() & LPAREN)
@@ -1021,6 +1214,8 @@ void Parser::proc()
                         lexer.GetWord();
                         block();
                         // 本层数据结束，记得回到上一层
+                        pcodelist.emit(opr, 0, OPR_RETURN);
+                        symTable.display.pop_back();
                         symTable.level--;
 
                         while (lexer.GetTokenType() & SEMICOLON)
@@ -1035,6 +1230,8 @@ void Parser::proc()
                                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                         block();
                         // 本层数据结束，记得回到上一层
+                        pcodelist.emit(opr, 0, OPR_RETURN);
+                        symTable.display.pop_back();
                         symTable.level--;
                         while (lexer.GetTokenType() & SEMICOLON)
                         {
@@ -1082,7 +1279,9 @@ void Parser::proc()
                     {
                         lexer.GetWord();
                         block();
+                        pcodelist.emit(opr, 0, OPR_RETURN);
                         // 本层数据结束，记得回到上一层
+                        symTable.display.pop_back();
                         symTable.level--;
 
                         while (lexer.GetTokenType() & SEMICOLON)
@@ -1097,6 +1296,8 @@ void Parser::proc()
                                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                         block();
                         // 本层数据结束，记得回到上一层
+                        pcodelist.emit(opr, 0, OPR_RETURN);
+                        symTable.display.pop_back();
                         symTable.level--;
 
                         while (lexer.GetTokenType() & SEMICOLON)
@@ -1121,7 +1322,9 @@ void Parser::proc()
                     lexer.GetWord();
                     block();
                     // 本层数据结束，记得回到上一层
+                    pcodelist.emit(opr, 0, OPR_RETURN);
                     symTable.level--;
+                    symTable.display.pop_back();
                     while (lexer.GetTokenType() & SEMICOLON)
                     {
                         lexer.GetWord();
@@ -1134,7 +1337,9 @@ void Parser::proc()
                                       lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                     block();
                     // 本层数据结束，记得回到上一层
+                    pcodelist.emit(opr, 0, OPR_RETURN);
                     symTable.level--;
+                    symTable.display.pop_back();
                     while (lexer.GetTokenType() & SEMICOLON)
                     {
                         lexer.GetWord();
@@ -1150,6 +1355,8 @@ void Parser::proc()
             if (cur_proc != -1)
             {
                 cur_info = (ProcInfo *)symTable.table[cur_proc].info;
+                size_t entry = pcodelist.emit(jmp, 0, 0);
+                symTable.table[symTable.table.size() - 1].info->SetEntry(entry);
             }
             // 层数增加
             symTable.display.push_back(0);
@@ -1192,8 +1399,11 @@ void Parser::proc()
                 {
                     lexer.GetWord();
                     block();
+                    // 执行返回，并弹栈
+                    pcodelist.emit(opr, 0, OPR_RETURN);
                     // 本层数据结束，记得回到上一层
                     symTable.level--;
+                    symTable.display.pop_back();
                     while (lexer.GetTokenType() & SEMICOLON)
                     {
                         lexer.GetWord();
@@ -1206,7 +1416,9 @@ void Parser::proc()
                                       lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                     block();
                     // 本层数据结束，记得回到上一层
+                    pcodelist.emit(opr, 0, OPR_RETURN);
                     symTable.level--;
+                    symTable.display.pop_back();
                     while (lexer.GetTokenType() & SEMICOLON)
                     {
                         lexer.GetWord();
@@ -1242,6 +1454,14 @@ void Parser::block()
             proc();
         // wcout << lexer.GetStrToken() << endl;
         //<block> → [<condecl>][<vardecl>][<proc>]<body>
+        // 为子过程开辟活动记录空间，其中为display开辟level + 1个单元
+        size_t entry = pcodelist.emit(alloc, 0, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + symTable.level + 1);
+        size_t target = cur_info->entry;
+        // 将过程入口地址回填至过程的跳转语句
+        pcodelist.backpatch(target, entry);
+        // 过程体开始，过程已定义
+        if (cur_proc)
+            cur_info->isDefined = true;
         body();
     }
 }
@@ -1262,6 +1482,9 @@ void Parser::prog()
         if (lexer.GetTokenType() == SEMICOLON)
         {
             lexer.GetWord();
+            // 主过程的入口地址登入符号表，待回填
+            size_t entry = pcodelist.emit(jmp, 0, 0);
+            symTable.table[0].info->SetEntry(entry);
             block(); // 进入<block>
 
             if (lexer.GetCh() != L'\0' && lexer.GetCh() != L'#')
@@ -1271,6 +1494,9 @@ void Parser::prog()
         }
         else
         {
+            // 主过程的入口地址登入符号表，待回填
+            size_t entry = pcodelist.emit(jmp, 0, 0);
+            symTable.table[0].info->SetEntry(entry);
             errorHandle.error(MISSING, L";",
                               lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             block();
@@ -1291,6 +1517,9 @@ void Parser::prog()
         symTable.EnterProgm(L"null");
         // TODO
         lexer.GetWord();
+        // 主过程的入口地址登入符号表，待回填
+        size_t entry = pcodelist.emit(jmp, 0, 0);
+        symTable.table[0].info->SetEntry(entry);
         block(); // 进入<block>
         if (lexer.GetCh() != '\0' && lexer.GetCh() != L'#')
             errorHandle.error(ILLEGAL_WORD, (L"'" + lexer.GetStrToken() + L"'").c_str(),
@@ -1305,6 +1534,9 @@ void Parser::prog()
         // ERROR
         errorHandle.error(EXPECT_STH_FIND_ANTH, L"id", (L"'" + lexer.GetStrToken() + L"'").c_str(),
                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
+        // 主过程的入口地址登入符号表，待回填
+        size_t entry = pcodelist.emit(jmp, 0, 0);
+        symTable.table[0].info->SetEntry(entry);
         block(); // 进入<block>
         if (lexer.GetCh() != '\0' && lexer.GetCh() != L'#')
             errorHandle.error(ILLEGAL_WORD, (L"'" + lexer.GetStrToken() + L"'").c_str(),

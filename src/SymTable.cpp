@@ -45,6 +45,9 @@ void ProcInfo::show()
         wcout << setw(5) << symTable.GetTable(mem).name;
 }
 
+void ProcInfo::SetEntry(size_t entry) { this->entry = entry; };
+size_t ProcInfo::GetEntry(){ return this->entry; };
+
 // 输入：词法分析器识别到的词法name，cat（类别）
 // 功能：找到距离当前层最近出现的相同的词，并返回该词在符号表中的位置
 // 输出：-1表示找不到，不是-1表示找得到
@@ -104,7 +107,7 @@ void SymTableItem::show()
 int SymTable::InsertToTable(wstring name, size_t offset, Category cat)
 {
     int pos = SearchInfo(name, cat);
-    if (cat == Category::PROCE && pos != -1 && table[pos].info->level == level + 1) // 找到的相同的词在本层
+    if (cat == Category::PROCE && pos != -1 && table[pos].info->level == level) // 找到的相同的词在本层
     {
         errorHandle.error(REDECLEARED_PROC, name.c_str(), lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
         return -1;

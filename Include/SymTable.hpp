@@ -27,6 +27,8 @@ public:
     virtual void SetValue(wstring value) {}
     virtual int GetValue() { return -1; }
     virtual void show();
+    virtual void SetEntry(size_t entry) { };
+    virtual size_t GetEntry(){ return -1;};
 };
 
 // 变量信息，继承信息类型
@@ -53,8 +55,8 @@ public:
 
     ProcInfo();
     void show() override;
-    void SetEntry(size_t entry) { this->entry = entry; };
-    size_t GetEntry(){ return this->entry; };
+    void SetEntry(size_t entry) override;
+    size_t GetEntry()override;
 };
 
 // 符号表项

@@ -16,19 +16,6 @@ enum Operation {
     wrt,       // 将栈顶内容输出
 };
 
-wstring op_map[P_CODE_CNT] = {
-    L"LIT",
-    L"OPR",
-    L"LOD",
-    L"STO",
-    L"CAL",
-    L"INT",
-    L"JMP",
-    L"JPC",
-    L"RED",
-    L"WRT"
-};
-
 class PCode {
 public:
     Operation op; // 伪操作码
