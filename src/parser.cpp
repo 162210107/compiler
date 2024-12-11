@@ -208,7 +208,7 @@ void Parser::statement()
                 cur_info = (ProcInfo *)symTable.table[pos].info;
             // 若调用未定义的过程
             if (cur_info && !cur_info->isDefined)
-                errorHandle.error(UNDEFINED_PROC, lexer.GetStrToken().c_str(),  lexer.GetPreWordRow(),
+                errorHandle.error(UNDEFINED_PROC, lexer.GetStrToken().c_str(), lexer.GetPreWordRow(),
                                   lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             lexer.GetWord();
             if (lexer.GetTokenType() & LPAREN)
@@ -980,8 +980,10 @@ void Parser::proc()
             lexer.GetWord();
             if (lexer.GetTokenType() & LPAREN)
             {
+                // 层数增加
                 symTable.display.push_back(0);
                 symTable.level++;
+
                 lexer.GetWord();
                 if (lexer.GetTokenType() & IDENT)
                 {
@@ -1018,6 +1020,9 @@ void Parser::proc()
                     {
                         lexer.GetWord();
                         block();
+                        // 本层数据结束，记得回到上一层
+                        symTable.level--;
+
                         while (lexer.GetTokenType() & SEMICOLON)
                         {
                             lexer.GetWord();
@@ -1029,6 +1034,8 @@ void Parser::proc()
                         errorHandle.error(MISSING, L"';'",
                                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                         block();
+                        // 本层数据结束，记得回到上一层
+                        symTable.level--;
                         while (lexer.GetTokenType() & SEMICOLON)
                         {
                             lexer.GetWord();
@@ -1041,6 +1048,7 @@ void Parser::proc()
             {
                 symTable.display.push_back(0);
                 symTable.level++;
+
                 int form_var = symTable.InsertToTable(lexer.GetStrToken(), glo_offset, Category::FORM);
                 glo_offset += 4;
                 if (cur_info)
@@ -1074,6 +1082,9 @@ void Parser::proc()
                     {
                         lexer.GetWord();
                         block();
+                        // 本层数据结束，记得回到上一层
+                        symTable.level--;
+
                         while (lexer.GetTokenType() & SEMICOLON)
                         {
                             lexer.GetWord();
@@ -1085,6 +1096,9 @@ void Parser::proc()
                         errorHandle.error(MISSING, L"';'",
                                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                         block();
+                        // 本层数据结束，记得回到上一层
+                        symTable.level--;
+
                         while (lexer.GetTokenType() & SEMICOLON)
                         {
                             lexer.GetWord();
@@ -1095,6 +1109,10 @@ void Parser::proc()
             }
             else if (lexer.GetTokenType() & RPAREN)
             {
+                // 层数增加
+                symTable.display.push_back(0);
+                symTable.level++;
+
                 errorHandle.error(MISSING, L"'('",
                                   lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                 lexer.GetWord();
@@ -1102,6 +1120,8 @@ void Parser::proc()
                 {
                     lexer.GetWord();
                     block();
+                    // 本层数据结束，记得回到上一层
+                    symTable.level--;
                     while (lexer.GetTokenType() & SEMICOLON)
                     {
                         lexer.GetWord();
@@ -1113,6 +1133,8 @@ void Parser::proc()
                     errorHandle.error(MISSING, L"';'",
                                       lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                     block();
+                    // 本层数据结束，记得回到上一层
+                    symTable.level--;
                     while (lexer.GetTokenType() & SEMICOLON)
                     {
                         lexer.GetWord();
@@ -1123,12 +1145,25 @@ void Parser::proc()
         }
         else if (lexer.GetTokenType() & LPAREN)
         {
+            symTable.MkTable();
+            int cur_proc = symTable.InsertToTable(L"null", 0, Category::PROCE);
+            if (cur_proc != -1)
+            {
+                cur_info = (ProcInfo *)symTable.table[cur_proc].info;
+            }
+            // 层数增加
+            symTable.display.push_back(0);
+            symTable.level++;
             errorHandle.error(MISSING, L"'<id>'",
                               lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
 
             lexer.GetWord();
             if (lexer.GetTokenType() & IDENT)
             {
+                int form_var = symTable.InsertToTable(lexer.GetStrToken(), glo_offset, Category::FORM);
+                glo_offset += 4;
+                if (cur_info)
+                    cur_info->formVarList.push_back(form_var);
                 lexer.GetWord();
                 while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & IDENT))
                 {
@@ -1138,7 +1173,13 @@ void Parser::proc()
                         errorHandle.error(MISSING, L"','",
                                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                     if (lexer.GetTokenType() & IDENT)
+                    {
+                        int form_var = symTable.InsertToTable(lexer.GetStrToken(), glo_offset, Category::FORM);
+                        glo_offset += 4;
+                        if (cur_info)
+                            cur_info->formVarList.push_back(form_var);
                         lexer.GetWord();
+                    }
                     else
                         errorHandle.error(MISSING, L"'<id>'",
                                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -1151,6 +1192,8 @@ void Parser::proc()
                 {
                     lexer.GetWord();
                     block();
+                    // 本层数据结束，记得回到上一层
+                    symTable.level--;
                     while (lexer.GetTokenType() & SEMICOLON)
                     {
                         lexer.GetWord();
@@ -1162,6 +1205,8 @@ void Parser::proc()
                     errorHandle.error(MISSING, L"';'",
                                       lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
                     block();
+                    // 本层数据结束，记得回到上一层
+                    symTable.level--;
                     while (lexer.GetTokenType() & SEMICOLON)
                     {
                         lexer.GetWord();
@@ -1191,7 +1236,7 @@ void Parser::block()
 
         size_t cur_proc = symTable.sp;
         ProcInfo *cur_info = (ProcInfo *)symTable.table[cur_proc].info;
-        symTable.AddWidth(cur_proc,glo_offset);
+        symTable.AddWidth(cur_proc, glo_offset);
         //<block> → [<condecl>][<vardecl>]<proc>
         if (lexer.GetTokenType() & firstProc)
             proc();
@@ -1243,7 +1288,7 @@ void Parser::prog()
                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
 
         symTable.MkTable();
-        symTable.EnterProgm(lexer.GetStrToken());
+        symTable.EnterProgm(L"null");
         // TODO
         lexer.GetWord();
         block(); // 进入<block>
@@ -1256,7 +1301,7 @@ void Parser::prog()
     if (lexer.GetTokenType() & firstBlock)
     {
         symTable.MkTable();
-        symTable.EnterProgm(lexer.GetStrToken());
+        symTable.EnterProgm(L"null");
         // ERROR
         errorHandle.error(EXPECT_STH_FIND_ANTH, L"id", (L"'" + lexer.GetStrToken() + L"'").c_str(),
                           lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());

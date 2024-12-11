@@ -3,7 +3,7 @@ SymTable symTable;
 
 void Information::show()
 {
-    wcout << setw(10) << L"cat: " << setw(13) << cat
+    wcout << setw(10) << L"cat: " << setw(5) << (int)cat
           << setw(10) << L"offset: " << setw(5) << offset
           << setw(10) << L"level: " << setw(5) << level;
 }
@@ -14,7 +14,7 @@ int VarInfo::GetValue() { return this->value; }
 
 void VarInfo::show()
 {
-    wcout << setw(10) << L"cat:" << setw(15) << cat
+    wcout << setw(10) << L"cat:" << setw(5) << (int)cat
           << setw(10) << L"offset:" << setw(5) << offset
           << setw(10) << L"level:" << setw(5) << level
           << setw(10) << L"value:" << setw(5) << value;
@@ -34,7 +34,7 @@ ProcInfo::ProcInfo()
 
 void ProcInfo::show()
 {
-    wcout << setw(10) << L"cat:" << setw(15) << cat
+    wcout << setw(10) << L"cat:" << setw(5) << (int)cat
           << setw(10) << L"size:" << setw(5) << offset
           << setw(10) << L"level:" << setw(5) << level
           << setw(10) << L"entry:" << setw(5) << entry
@@ -89,8 +89,12 @@ void SymTable::MkTable()
 
 void SymTableItem::show()
 {
-    wcout << setw(10) << name << setw(10) << previous;
+    wcout << setw(5)<<name << setw(10)<<"previous:"<<setw(4) << previous;
     info->show();
+    wcout<<setw(10)<<"display:";
+    for(int i=0;i<=info->level;i++){
+        wcout<<setw(5)<<symTable.display[i];
+    }
     wcout << endl;
 }
 
@@ -124,7 +128,7 @@ int SymTable::InsertToTable(wstring name, size_t offset, Category cat)
         procInfo->cat = cat;
         procInfo->entry = 0;
         procInfo->offset = 0;
-        procInfo->level = level + 1;
+        procInfo->level = level;
         item.info = procInfo;
     }
     else

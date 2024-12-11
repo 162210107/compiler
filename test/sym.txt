@@ -8,7 +8,7 @@ procedure P(i);
             var a;
             begin
                 a:=1
-            end;
+            end
         begin
             a:=1
         end;    
@@ -16,10 +16,10 @@ procedure P(i);
         var a;
         begin
             a:=1
-        end;
+        end
      begin
          a:=1
      end
 begin
-    a:=1;
+    a:=1
 end
