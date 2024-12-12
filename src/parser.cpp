@@ -129,7 +129,7 @@ void Parser::statement()
                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
         if (cur_info)
             // 赋值的P代码，当前栈顶为计算出的表达式
-            pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+            pcodelist.emit(store, symTable.level - cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
     }
     else if (lexer.GetTokenType() & IF_SYM)
     { // <statement> -> if <lexp> then <statement> [else <statement>]
@@ -276,7 +276,7 @@ void Parser::statement()
                     {
                         lexer.GetWord();
                         if (cur_info)
-                            pcodelist.emit(call, cur_info->level, cur_info->entry);
+                            pcodelist.emit(call, symTable.level - cur_info->level, cur_info->entry);
                     }
                     else
                         errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
@@ -322,7 +322,7 @@ void Parser::statement()
                 {
                     lexer.GetWord();
                     if (cur_info)
-                        pcodelist.emit(call, cur_info->level, cur_info->entry);
+                        pcodelist.emit(call, symTable.level - cur_info->level, cur_info->entry);
                 }
                 else
                     errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
@@ -395,7 +395,7 @@ void Parser::statement()
                     // 从命令行读一个数据到栈顶
                     pcodelist.emit(red, 0, 0);
                     // 将栈顶值送入变量所在地址
-                    pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+                    pcodelist.emit(store, symTable.level - cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
                 }
                 lexer.GetWord();
                 while (lexer.GetTokenType() & COMMA)
@@ -419,7 +419,7 @@ void Parser::statement()
                             // 从命令行读一个数据到栈顶
                             pcodelist.emit(red, 0, 0);
                             // 将栈顶值送入变量所在地址
-                            pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+                            pcodelist.emit(store, symTable.level - cur_info1->level, cur_info1->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info1->level + 1);
                         }
                         lexer.GetWord();
                     }
@@ -470,7 +470,7 @@ void Parser::statement()
                             // 从命令行读一个数据到栈顶
                             pcodelist.emit(red, 0, 0);
                             // 将栈顶值送入变量所在地址
-                            pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+                            pcodelist.emit(store, symTable.level - cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
                         }
                         lexer.GetWord();
                     }
@@ -515,7 +515,7 @@ void Parser::statement()
                 // 从命令行读一个数据到栈顶
                 pcodelist.emit(red, 0, 0);
                 // 将栈顶值送入变量所在地址
-                pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+                pcodelist.emit(store, symTable.level - cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
             }
             lexer.GetWord();
             while (lexer.GetTokenType() & COMMA)
@@ -539,7 +539,7 @@ void Parser::statement()
                         // 从命令行读一个数据到栈顶
                         pcodelist.emit(red, 0, 0);
                         // 将栈顶值送入变量所在地址
-                        pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+                        pcodelist.emit(store, symTable.level - cur_info1->level, cur_info1->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info1->level + 1);
                     }
                     lexer.GetWord();
                 }
@@ -591,7 +591,7 @@ void Parser::statement()
                         // 从命令行读一个数据到栈顶
                         pcodelist.emit(red, 0, 0);
                         // 将栈顶值送入变量所在地址
-                        pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+                        pcodelist.emit(store, symTable.level - cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
                     }
                     lexer.GetWord();
                 }
@@ -740,6 +740,7 @@ void Parser::statement()
         }
         else
             judge(0, followStatement, ILLEGAL_DEFINE, L"<write>");
+        pcodelist.emit(opr, 0, 13); // 屏幕输出换行
     }
     else
         // system("pause");
@@ -780,7 +781,7 @@ void Parser::exp()
                         pcodelist.emit(opr, 0, OPR_ADD);
                 }
                 else
-                    errorHandle.error(REDUNDENT, lexer.GetStrToken().c_str(),  lexer.GetPreWordRow(),
+                    errorHandle.error(REDUNDENT, lexer.GetStrToken().c_str(), lexer.GetPreWordRow(),
                                       lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             }
         }
@@ -844,10 +845,10 @@ void Parser::factor()
             if (cur_info->cat == Category::CST)
             {
                 int val = cur_info->GetValue();
-                pcodelist.emit(lit, cur_info->level, val);
+                pcodelist.emit(lit, symTable.level - cur_info->level, val);
             }
             else
-                pcodelist.emit(load, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+                pcodelist.emit(load, symTable.level - cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
         }
         lexer.GetWord();
     }
@@ -1215,6 +1216,7 @@ void Parser::proc()
                         block();
                         // 本层数据结束，记得回到上一层
                         pcodelist.emit(opr, 0, OPR_RETURN);
+                        // 过程调用结束后,返回调用点并退栈
                         symTable.display.pop_back();
                         symTable.level--;
 
@@ -1447,6 +1449,7 @@ void Parser::block()
             vardecl();
 
         size_t cur_proc = symTable.sp;
+        // wcout << L"now sp is: " << cur_proc << L"glo_offset: " << glo_offset << endl;
         ProcInfo *cur_info = (ProcInfo *)symTable.table[cur_proc].info;
         symTable.AddWidth(cur_proc, glo_offset);
         //<block> → [<condecl>][<vardecl>]<proc>
@@ -1486,7 +1489,8 @@ void Parser::prog()
             size_t entry = pcodelist.emit(jmp, 0, 0);
             symTable.table[0].info->SetEntry(entry);
             block(); // 进入<block>
-
+                     // 本层数据结束，记得回到上一层
+            pcodelist.emit(opr, 0, OPR_RETURN);
             if (lexer.GetCh() != L'\0' && lexer.GetCh() != L'#')
                 errorHandle.error(ILLEGAL_WORD, (L"'" + lexer.GetStrToken() + L"'").c_str(),
                                   lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -1500,6 +1504,8 @@ void Parser::prog()
             errorHandle.error(MISSING, L";",
                               lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
             block();
+            // 本层数据结束，记得回到上一层
+            pcodelist.emit(opr, 0, OPR_RETURN);
             if (lexer.GetCh() != L'\0' && lexer.GetCh() != L'#')
                 errorHandle.error(ILLEGAL_WORD, (L"'" + lexer.GetStrToken() + L"'").c_str(),
                                   lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -1521,6 +1527,8 @@ void Parser::prog()
         size_t entry = pcodelist.emit(jmp, 0, 0);
         symTable.table[0].info->SetEntry(entry);
         block(); // 进入<block>
+                 // 本层数据结束，记得回到上一层
+        pcodelist.emit(opr, 0, OPR_RETURN);
         if (lexer.GetCh() != '\0' && lexer.GetCh() != L'#')
             errorHandle.error(ILLEGAL_WORD, (L"'" + lexer.GetStrToken() + L"'").c_str(),
                               lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
@@ -1538,6 +1546,8 @@ void Parser::prog()
         size_t entry = pcodelist.emit(jmp, 0, 0);
         symTable.table[0].info->SetEntry(entry);
         block(); // 进入<block>
+        // 本层数据结束，记得回到上一层
+        pcodelist.emit(opr, 0, OPR_RETURN);
         if (lexer.GetCh() != '\0' && lexer.GetCh() != L'#')
             errorHandle.error(ILLEGAL_WORD, (L"'" + lexer.GetStrToken() + L"'").c_str(),
                               lexer.GetPreWordRow(), lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());

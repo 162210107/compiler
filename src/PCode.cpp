@@ -28,7 +28,7 @@ void PCodeList::backpatch(size_t target, size_t addr)
         code_list[target].a = addr;
 }
 
-void PCodeList::printCode()
+void PCodeList::show()
 {
     for (size_t i = 0; i < code_list.size(); i++) 
         wcout << setw(4) << i << L"  " << op_map[code_list[i].op] << L", " << code_list[i].L << L", " << code_list[i].a << endl;
