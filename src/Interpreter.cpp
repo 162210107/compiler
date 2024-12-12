@@ -28,19 +28,18 @@ void Interpreter::opr(Operation op, int L, int a)
     // opr 0 0 执行断点返回并弹栈
     if (a == OPR_RETURN)
     {
-        // 恢复断点，此处-1是因为这个函数末尾有个+1，debug了半天才发现
-        pc = running_stack[sp + RA] - 1;
+        // 恢复断点，此处-1是因为这个函数末尾有个+1
+        pc = running_stack[sp + RA];
         int old_sp = running_stack[sp + DL];
         // top指针还原到上一个活动记录位置
         top -= top - sp;
         // 恢复老sp
         sp = old_sp;
+        return ;
     }
     else if (a == OPR_NEGTIVE)
-    {
         // 栈顶取反(反码 + 1)
         running_stack[top - 1] = ~running_stack[top - 1] + 1;
-    }
     else if (a == OPR_ADD)
     {
         // 次栈顶加栈顶
@@ -74,10 +73,8 @@ void Interpreter::opr(Operation op, int L, int a)
         top--;
     }
     else if (a == OPR_ODD)
-    {
         // 栈顶元素为奇数结果为真
         running_stack[top - 1] = (running_stack[top - 1] & 0b1) == 1;
-    }
     else if (a == OPR_EQL)
     {
         // 栈顶与次栈顶相等时结果为真
@@ -173,7 +170,6 @@ void Interpreter::sto(Operation op, int L, int a)
 // 调用过程，先保存断点，然后调整sp
 void Interpreter::cal(Operation op, int L, int a)
 {
-
     // 保存断点
     running_stack[top + RA] = pc + 1;
     // 复制全局display的L+1个单元到即将开辟的活动记录

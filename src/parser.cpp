@@ -129,7 +129,7 @@ void Parser::statement()
                               lexer.GetPreWordCol(), lexer.GetRowPos(), lexer.GetColPos());
         if (cur_info)
             // 赋值的P代码，当前栈顶为计算出的表达式
-            pcodelist.emit(store, symTable.level - cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+            pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
     }
     else if (lexer.GetTokenType() & IF_SYM)
     { // <statement> -> if <lexp> then <statement> [else <statement>]
@@ -276,7 +276,7 @@ void Parser::statement()
                     {
                         lexer.GetWord();
                         if (cur_info)
-                            pcodelist.emit(call, symTable.level - cur_info->level, cur_info->entry);
+                            pcodelist.emit(call, cur_info->level, cur_info->entry);
                     }
                     else
                         errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
@@ -322,7 +322,7 @@ void Parser::statement()
                 {
                     lexer.GetWord();
                     if (cur_info)
-                        pcodelist.emit(call, symTable.level - cur_info->level, cur_info->entry);
+                        pcodelist.emit(call, cur_info->level, cur_info->entry);
                 }
                 else
                     errorHandle.error(MISSING, L")", lexer.GetPreWordRow(),
@@ -395,7 +395,7 @@ void Parser::statement()
                     // 从命令行读一个数据到栈顶
                     pcodelist.emit(red, 0, 0);
                     // 将栈顶值送入变量所在地址
-                    pcodelist.emit(store, symTable.level - cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+                    pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
                 }
                 lexer.GetWord();
                 while (lexer.GetTokenType() & COMMA)
@@ -419,7 +419,7 @@ void Parser::statement()
                             // 从命令行读一个数据到栈顶
                             pcodelist.emit(red, 0, 0);
                             // 将栈顶值送入变量所在地址
-                            pcodelist.emit(store, symTable.level - cur_info1->level, cur_info1->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info1->level + 1);
+                            pcodelist.emit(store, cur_info1->level, cur_info1->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info1->level + 1);
                         }
                         lexer.GetWord();
                     }
@@ -470,7 +470,7 @@ void Parser::statement()
                             // 从命令行读一个数据到栈顶
                             pcodelist.emit(red, 0, 0);
                             // 将栈顶值送入变量所在地址
-                            pcodelist.emit(store, symTable.level - cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+                            pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
                         }
                         lexer.GetWord();
                     }
@@ -515,7 +515,7 @@ void Parser::statement()
                 // 从命令行读一个数据到栈顶
                 pcodelist.emit(red, 0, 0);
                 // 将栈顶值送入变量所在地址
-                pcodelist.emit(store, symTable.level - cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+                pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
             }
             lexer.GetWord();
             while (lexer.GetTokenType() & COMMA)
@@ -539,7 +539,7 @@ void Parser::statement()
                         // 从命令行读一个数据到栈顶
                         pcodelist.emit(red, 0, 0);
                         // 将栈顶值送入变量所在地址
-                        pcodelist.emit(store, symTable.level - cur_info1->level, cur_info1->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info1->level + 1);
+                        pcodelist.emit(store, cur_info1->level, cur_info1->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info1->level + 1);
                     }
                     lexer.GetWord();
                 }
@@ -591,7 +591,7 @@ void Parser::statement()
                         // 从命令行读一个数据到栈顶
                         pcodelist.emit(red, 0, 0);
                         // 将栈顶值送入变量所在地址
-                        pcodelist.emit(store, symTable.level - cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+                        pcodelist.emit(store, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
                     }
                     lexer.GetWord();
                 }
@@ -845,10 +845,10 @@ void Parser::factor()
             if (cur_info->cat == Category::CST)
             {
                 int val = cur_info->GetValue();
-                pcodelist.emit(lit, symTable.level - cur_info->level, val);
+                pcodelist.emit(lit, cur_info->level, val);
             }
             else
-                pcodelist.emit(load, symTable.level - cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
+                pcodelist.emit(load, cur_info->level, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + cur_info->level + 1);
         }
         lexer.GetWord();
     }
