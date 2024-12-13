@@ -97,8 +97,8 @@ const int ERR_CNT = 70;      // 报错种数
 #define ELSE_SYM 0x80000000
 
 //PCode
-#define P_CODE_CNT 10 // P-Code的种类数
-#define UNIT_SIZE 4 // 一个内存单元的字节大小
+#define P_CODE_CNT 10      // P-Code的种类数
+#define UNIT_SIZE 4        // 一个内存单元的字节大小
 #define ACT_PRE_REC_SIZE 3 // 活动记录的预先大小（RA、DL、全局Display）
 
 #define OPR_RETURN 0
