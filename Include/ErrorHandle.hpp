@@ -17,6 +17,7 @@ public:
     void error(const unsigned int n, const wchar_t *,const size_t preWordRow,const size_t preWordCol,const size_t rowPos,const size_t colPos);
     void error(const unsigned int n, const wchar_t *, const wchar_t *,const size_t preWordRow,const size_t preWordCol,const size_t rowPos,const size_t colPos);
     void InitErrorHandle();
+    unsigned int GetError(){return errCnt;};
     void over();
 };
 

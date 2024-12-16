@@ -178,7 +178,7 @@ void Interpreter::cal(Operation op, int L, int a)
     for (int i = 0; i <= L; i++)
         running_stack[top + DISPLAY + i] = running_stack[running_stack[sp + GLO_DIS] + i];
     // 第L+1个单元是即将开辟的活动记录的基地址
-    running_stack[top + DISPLAY + L] = top;
+    running_stack[top + DISPLAY + L + 1 ] = top;
     // 记录老sp，并调整sp到即将开辟的活动记录
     running_stack[top + DL] = sp;
     sp = top;
@@ -215,10 +215,10 @@ void Interpreter::jmp(Operation op, int L, int a)
 // 当前栈顶条件为假时跳转
 void Interpreter::jpc(Operation op, int L, int a)
 {
-    // 栈顶条件为假
-    if (!running_stack[top - 1])
+    // 栈顶条件为false
+    if (running_stack[top - 1]==false)
         pc = a;
-    // 栈顶条件为真
+    // 栈顶条件为true
     else
         pc++;
     top--;
@@ -251,7 +251,7 @@ void Interpreter::run()
 {
     Init();
     // 按照pc的指示运行程序
-    for (int i = 0; i < pcodelist.code_list.size(); i = pc)
+    for (int i = 0; i < pcodelist.code_list.size()-1; i = pc)
     {
         // wcout << pc << endl;
         PCode code = pcodelist.code_list[i];

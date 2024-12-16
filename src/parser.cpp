@@ -249,7 +249,7 @@ void Parser::statement()
                     exp();
                     // 将实参传入即将调用的子过程
                     if (cur_info)
-                        pcodelist.emit(store, -1, ACT_PRE_REC_SIZE + cur_info->level + 1);
+                        pcodelist.emit(store, -1, ACT_PRE_REC_SIZE + cur_info->level + 1 + 1);
                     size_t i = 1;
                     while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
                     {
@@ -263,7 +263,7 @@ void Parser::statement()
                             exp();
                             // 将实参传入即将调用的子过程
                             if (cur_info)
-                                pcodelist.emit(store, -1, ACT_PRE_REC_SIZE + cur_info->level + 1 + i++);
+                                pcodelist.emit(store, -1, ACT_PRE_REC_SIZE + cur_info->level + 1 + 1 + i++);
                         }
                         else
                             exp();
@@ -295,7 +295,7 @@ void Parser::statement()
                 exp();
                 // 将实参传入即将调用的子过程
                 if (cur_info)
-                    pcodelist.emit(store, -1, ACT_PRE_REC_SIZE + cur_info->level + 1);
+                    pcodelist.emit(store, -1, ACT_PRE_REC_SIZE + cur_info->level + 2);
                 size_t i = 1;
                 while ((lexer.GetTokenType() & COMMA) || (lexer.GetTokenType() & firstExp))
                 {
@@ -309,7 +309,7 @@ void Parser::statement()
                         exp();
                         // 将实参传入即将调用的子过程
                         if (cur_info)
-                            pcodelist.emit(store, -1, ACT_PRE_REC_SIZE + cur_info->level + 1 + i++);
+                            pcodelist.emit(store, -1, ACT_PRE_REC_SIZE + cur_info->level + 2 + i++);
                     }
                     else
                         exp();
@@ -1155,6 +1155,7 @@ void Parser::condecl()
 //<proc> → procedure <id>（[<id>{,<id>}]）;<block>{;<proc>}
 void Parser::proc()
 {
+    int flag = 0;
     if (lexer.GetTokenType() == PROC_SYM)
     {
         lexer.GetWord();
@@ -1458,10 +1459,11 @@ void Parser::block()
         // wcout << lexer.GetStrToken() << endl;
         //<block> → [<condecl>][<vardecl>][<proc>]<body>
         // 为子过程开辟活动记录空间，其中为display开辟level + 1个单元
-        size_t entry = pcodelist.emit(alloc, 0, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + symTable.level + 1);
-        size_t target = cur_info->entry;
-        // 将过程入口地址回填至过程的跳转语句
-        pcodelist.backpatch(target, entry);
+            size_t entry = pcodelist.emit(alloc, 0, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + symTable.level + 1);
+            size_t target = cur_info->entry;
+            // wcout<<cur_info->entry<<endl;
+            // 将过程入口地址回填至过程的跳转语句
+            pcodelist.backpatch(target, entry);
         // 过程体开始，过程已定义
         if (cur_proc)
             cur_info->isDefined = true;

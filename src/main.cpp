@@ -3,6 +3,7 @@
 #include <ErrorHandle.hpp>
 #include <SymTable.hpp>
 #include <parser.hpp>
+#include <Interpreter.hpp>
 using namespace std;
 
 void init()
@@ -14,7 +15,7 @@ void init()
     errorHandle.InitErrorHandle();
     // 以Unicode方式打开输入输出流
     _setmode(_fileno(stdout), _O_U16TEXT);
-    //符号表初始化
+    // 符号表初始化
     symTable.InitAndClear();
 }
 
@@ -24,7 +25,7 @@ void TestLexer()
     while (cin >> filename)
     {
         init();
-        //C:\Users\蔡蕾\Desktop\compilation-principle\test\test_error.txt
+        // C:\Users\蔡蕾\Desktop\compilation-principle\test\test_error.txt
         readUnicode.readFile2USC2("D:\\compilation-principle\\test\\" + filename);
         if (readUnicode.isEmpty())
         {
@@ -33,20 +34,22 @@ void TestLexer()
         }
 
         lexer.GetWord();
-        while(lexer.GetCh()!=L'\0'){
+        while (lexer.GetCh() != L'\0')
+        {
             lexer.GetWord();
         }
-        wcout<<L"finished!";
+        wcout << L"finished!";
         return;
     }
 }
 
-void TestParser(){
+void TestParser()
+{
     string filename = "";
     while (cin >> filename)
     {
         init();
-        //C:\Users\蔡蕾\Desktop\compilation-principle\test\test_error.txt
+        // C:\Users\蔡蕾\Desktop\compilation-principle\test\test_error.txt
         readUnicode.readFile2USC2("D:\\compilation-principle\\test\\" + filename);
         if (readUnicode.isEmpty())
         {
@@ -60,12 +63,13 @@ void TestParser(){
     return;
 }
 
-void TestSymTable(){
+void TestSymTable()
+{
     string filename = "";
     while (cin >> filename)
     {
         init();
-        //C:\Users\蔡蕾\Desktop\compilation-principle\test\test_error.txt
+        // C:\Users\蔡蕾\Desktop\compilation-principle\test\test_error.txt
         readUnicode.readFile2USC2("D:\\compilation-principle\\test\\" + filename);
         if (readUnicode.isEmpty())
         {
@@ -73,7 +77,7 @@ void TestSymTable(){
             continue;
         }
 
-        //TODO
+        // TODO
         parser.analyze();
         symTable.showAll();
 
@@ -81,12 +85,13 @@ void TestSymTable(){
     }
 }
 
-void TestPCode(){
+void TestPCode()
+{
     string filename = "";
     while (cin >> filename)
     {
         init();
-        //C:\Users\蔡蕾\Desktop\compilation-principle\test\test_error.txt
+        // C:\Users\蔡蕾\Desktop\compilation-principle\test\test_error.txt
         readUnicode.readFile2USC2("D:\\compilation-principle\\test\\" + filename);
         if (readUnicode.isEmpty())
         {
@@ -94,10 +99,33 @@ void TestPCode(){
             continue;
         }
 
-        //TODO
+        // TODO
         parser.analyze();
         pcodelist.show();
 
+        return;
+    }
+}
+
+void Test()
+{
+    string filename = "";
+    while (cin >> filename)
+    {
+        init();
+        // C:\Users\蔡蕾\Desktop\compilation-principle\test\test_error.txt
+        readUnicode.readFile2USC2("D:\\compilation-principle\\test\\" + filename);
+        if (readUnicode.isEmpty())
+        {
+            wcout << L"请输入下一个待编译的文件名称, 或输入'r'重复, 或按Ctrl+C结束" << endl;
+            continue;
+        }
+
+        // TODO
+        parser.analyze();
+        pcodelist.show();
+        if (errorHandle.GetError() == 0)
+            interpreter.run();
         return;
     }
 }
@@ -107,5 +135,6 @@ int main()
     // TestLexer();
     // TestSymTable();
     // TestParser();
-    TestPCode();
+    // TestPCode();
+    Test();
 }

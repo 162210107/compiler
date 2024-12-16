@@ -28,3 +28,12 @@ parser21.txt  <call>：      call使用不符合 PL/0 的语法规则。
 parser22.txt  <const>：     :=缺少错误。
 parser23.txt  <,>：         const和var时,多余。 
 parser24.txt  综合测试。
+
+sym1.txt      符号表测试
+
+pcode.txt     中间代码测试   参考样例运行结果。
+
+complex1.txt  过程调用      函数过程重定义。层层嵌套定义同一个过程名。
+complex2.txt  过程调用      递归调用。
+complex3.txt  过程调用      层数大的调用层数小的。
+complex4.txt  过程调用      主->B->D->C，层数小的调用大于等于自己的。

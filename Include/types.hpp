@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tchar.h>
+#include <ctime>
 #include <unordered_map>
 #include <vector>
 #include <windows.h>

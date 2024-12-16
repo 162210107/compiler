@@ -22,8 +22,9 @@ public:
     Category cat; // 种属
     size_t level; // 属于的子程序层数
     size_t offset;
+    size_t entry;
 
-    Information():cat(Category::NIL),level(0),offset(0){};
+    Information():cat(Category::NIL),level(0),offset(0),entry(-1){};
     virtual void SetValue(wstring value) {}
     virtual int GetValue() { return -1; }
     virtual void show();
@@ -50,7 +51,6 @@ class ProcInfo : public Information
 {
 public:
     bool isDefined;             // 过程是否定义的标识
-    size_t entry;               // 过程的中间代码入口地址
     vector<size_t> formVarList; // 过程的形参入口地址列表
 
     ProcInfo();

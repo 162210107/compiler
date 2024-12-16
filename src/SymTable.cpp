@@ -28,7 +28,7 @@ SymTableItem SymTable::GetTable(int num)
 ProcInfo::ProcInfo()
     : Information()
 {
-    this->entry = 0;
+    this->entry = -1;
     this->isDefined = false;
 }
 

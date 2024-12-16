@@ -22,7 +22,7 @@ int PCodeList::emit(Operation op, int L, int a)
 
 void PCodeList::backpatch(size_t target, size_t addr)
 {
-    if (addr == -1)
+    if (addr == -1||target>=code_list.size())
         return;
     else
         code_list[target].a = addr;
