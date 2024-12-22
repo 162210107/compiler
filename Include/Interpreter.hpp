@@ -4,9 +4,9 @@
 #include <types.hpp>
 using namespace std;
 
-#define RA 0
-#define DL 1
-#define GLO_DIS 2 // 全局display存放位置
+#define RETURN_ADDRESS 0
+#define OLD_SP 1
+#define GLO_DISPLAY 2 // 全局display存放位置
 #define DISPLAY 3 // 具体的display存放位置
 // P代码的解释器
 class Interpreter {

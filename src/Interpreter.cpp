@@ -29,8 +29,8 @@ void Interpreter::opr(Operation op, int L, int a)
     if (a == OPR_RETURN)
     {
         // 恢复断点，此处-1是因为这个函数末尾有个+1
-        pc = running_stack[sp + RA];
-        int old_sp = running_stack[sp + DL];
+        pc = running_stack[sp + RETURN_ADDRESS];
+        int old_sp = running_stack[sp + OLD_SP];
         // top指针还原到上一个活动记录位置
         top -= top - sp;
         // 恢复老sp
@@ -171,16 +171,16 @@ void Interpreter::sto(Operation op, int L, int a)
 void Interpreter::cal(Operation op, int L, int a)
 {
     // 保存断点
-    running_stack[top + RA] = pc + 1;
+    running_stack[top + RETURN_ADDRESS] = pc + 1;
     // 复制全局display的L+1个单元到即将开辟的活动记录
     // running_stack[sp + GLO_DIS]表示当前全局display表的基地址
     // top + DISPLAY表示即将开辟的活动记录的display表基地址
     for (int i = 0; i <= L; i++)
-        running_stack[top + DISPLAY + i] = running_stack[running_stack[sp + GLO_DIS] + i];
+        running_stack[top + DISPLAY + i] = running_stack[running_stack[sp + GLO_DISPLAY] + i];
     // 第L+1个单元是即将开辟的活动记录的基地址
     running_stack[top + DISPLAY + L + 1 ] = top;
     // 记录老sp，并调整sp到即将开辟的活动记录
-    running_stack[top + DL] = sp;
+    running_stack[top + OLD_SP] = sp;
     sp = top;
     // 跳转
     pc = a;
@@ -202,7 +202,7 @@ void Interpreter::alc(Operation op, int L, int a)
         top = running_stack.size();
     }
     // 将新的display地址送到新的活动记录中的全局display处
-    running_stack[sp + GLO_DIS] = sp + DISPLAY;
+    running_stack[sp + GLO_DISPLAY] = sp + DISPLAY;
     pc++;
 }
 
