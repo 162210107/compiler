@@ -19,7 +19,7 @@ enum Operation {
 class PCode {
 public:
     Operation op; // 伪操作码
-    int L;        // 调用层与说明层的层差值
+    int L;        // 调用层
     int a;        // 相对地址（位移量）
 
     PCode(Operation op1, int L1, int a1): op(op1),L(L1),a(a1){};

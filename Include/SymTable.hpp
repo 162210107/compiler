@@ -74,7 +74,7 @@ public:
 class SymTable
 {
 public:
-    size_t sp;                  // 指向当前子过程名字的地址,符号表从1开始
+    size_t sp;                  // 指向当前子过程名字的地址,符号表从0开始
     vector<SymTableItem> table; // 一个程序唯一的符号表
     vector<size_t> display;     // 过程的嵌套层次表，栈结构进入新的一层起始处的符号表（其实是链表末尾下标）
     size_t level;               // 记录当前程序层级

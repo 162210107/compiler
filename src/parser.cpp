@@ -1459,11 +1459,11 @@ void Parser::block()
         // wcout << lexer.GetStrToken() << endl;
         //<block> → [<condecl>][<vardecl>][<proc>]<body>
         // 为子过程开辟活动记录空间，其中为display开辟level + 1个单元
-            size_t entry = pcodelist.emit(alloc, 0, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + symTable.level + 1);
-            size_t target = cur_info->entry;
-            // wcout<<cur_info->entry<<endl;
-            // 将过程入口地址回填至过程的跳转语句
-            pcodelist.backpatch(target, entry);
+        size_t entry = pcodelist.emit(alloc, 0, cur_info->offset / UNIT_SIZE + ACT_PRE_REC_SIZE + symTable.level + 1);
+        size_t target = cur_info->entry;
+        // wcout<<cur_info->entry<<endl;
+        // 将过程入口地址回填至过程的跳转语句
+        pcodelist.backpatch(target, entry);
         // 过程体开始，过程已定义
         if (cur_proc)
             cur_info->isDefined = true;
